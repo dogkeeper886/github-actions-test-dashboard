@@ -21,9 +21,9 @@ export function RefreshButton() {
       setLastRefresh(new Date())
     },
     onError: (error: Error & { response?: { status: number } }) => {
-      // Check if it's an "in progress" error
+      // Check if it's an "in progress" error - no action needed, UI shows status
       if (error?.response?.status === 409) {
-        console.log('Refresh already in progress')
+        // Handled by UI error display
       }
     }
   })
