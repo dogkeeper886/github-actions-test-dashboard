@@ -14,7 +14,7 @@ async function initDatabase() {
 
   pool = new Pool({
     connectionString: databaseUrl,
-    ssl: false // Disable SSL for local development
+    ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false
   })
 
   // Test the connection

@@ -93,12 +93,9 @@ class WorkflowRun {
   }
   
   static calculateDuration(runData) {
-    if (runData.run_started_at && runData.updated_at) {
-      const start = new Date(runData.run_started_at)
-      const end = new Date(runData.updated_at)
-      return end.getTime() - start.getTime()
-    }
-    return null
+    const start = new Date(runData.run_started_at)
+    const end = new Date(runData.updated_at)
+    return end.getTime() - start.getTime()
   }
 }
 
