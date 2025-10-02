@@ -2,9 +2,12 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { workflowsApi } from '@/lib/api'
-import { CheckCircle, XCircle, Clock, AlertCircle, ArrowLeft, FileText, Image, Code, Archive, Download, Eye, ChevronDown, ChevronRight, Terminal } from 'lucide-react'
+import { CheckCircle, XCircle, Clock, AlertCircle, ArrowLeft, FileText, Image, Code, Archive, ChevronDown, ChevronRight, Terminal, Folder } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { FileTree } from './FileTree'
+import { FilePreviewModal } from './FilePreviewModal'
+import { buildFileTree, FileNode } from '@/lib/fileTree'
 
 interface RunDetailsProps {
   runId: string
@@ -53,7 +56,7 @@ function JobLogsSection({ runId, jobId, isExpanded, onToggle }: {
 }
 
 export function RunDetails({ runId, onBack }: RunDetailsProps) {
-  const [selectedFile, setSelectedFile] = useState<{ id: string; originalPath: string; size: number; artifactName: string; content?: unknown; url?: string } | null>(null)
+  const [selectedFile, setSelectedFile] = useState<FileNode | null>(null)
   const [expandedJobs, setExpandedJobs] = useState<Set<number>>(new Set())
   const [expandedLogs, setExpandedLogs] = useState<Set<number>>(new Set())
   
@@ -66,6 +69,27 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
     queryKey: ['run-jobs', runId],
     queryFn: () => workflowsApi.getRunJobs(runId),
   })
+
+  // Build file tree from all files (must be called before any conditional returns)
+  const allFiles = useMemo(() => {
+    if (!data) return []
+    const { files } = data
+    const categorizeFile = (file: typeof files.images[0] | typeof files.json[0] | typeof files.text[0] | typeof files.binary[0]) => {
+      if (files.images.includes(file as typeof files.images[0])) return 'image'
+      if (files.json.includes(file as typeof files.json[0])) return 'json'
+      if (files.text.includes(file as typeof files.text[0])) return 'text'
+      return 'binary'
+    }
+
+    return [...files.images, ...files.json, ...files.text, ...files.binary].map(file => ({
+      ...file,
+      fileType: categorizeFile(file),
+      content: 'content' in file ? file.content : undefined,
+      url: 'url' in file ? file.url : undefined
+    }))
+  }, [data])
+
+  const fileTree = useMemo(() => buildFileTree(allFiles), [allFiles])
 
   if (isLoading) {
     return (
@@ -121,7 +145,7 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
 
   if (!data) return null
 
-  const { run, summary, files } = data
+  const { run, summary } = data
 
   const getStatusIcon = (status: string, conclusion: string | null) => {
     if (status === 'in_progress' || status === 'queued') {
@@ -148,14 +172,6 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
     if (hours > 0) return `${hours}h ${minutes % 60}m ${seconds % 60}s`
     if (minutes > 0) return `${minutes}m ${seconds % 60}s`
     return `${seconds}s`
-  }
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 B'
-    const k = 1024
-    const sizes = ['B', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
   }
 
   const toggleJobExpanded = (jobId: number) => {
@@ -195,69 +211,6 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
     }
   }
 
-  const FileSection = ({ title, icon: Icon, files: sectionFiles, type }: { 
-    title: string
-    icon: React.ComponentType<{ className?: string }>
-    files: Array<{ id: string; originalPath: string; size: number; artifactName: string; content?: unknown; url?: string }>
-    type: string 
-  }) => {
-    if (sectionFiles.length === 0) return null
-
-    return (
-      <div className="mb-6">
-        <div className="flex items-center space-x-2 mb-3">
-          <Icon className="h-5 w-5 text-gray-600" />
-          <h3 className="text-lg font-medium text-gray-900">
-            {title} ({sectionFiles.length})
-          </h3>
-        </div>
-        
-        <div className="space-y-2">
-          {sectionFiles.map((file) => (
-            <div
-              key={file.id}
-              className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="font-medium text-gray-900">{file.originalPath}</p>
-                  <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
-                    <span>{formatFileSize(file.size)}</span>
-                    <span>•</span>
-                    <span>{file.artifactName}</span>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  {(type === 'json' || type === 'text') && file.content !== undefined && (
-                    <button
-                      onClick={() => setSelectedFile(file)}
-                      className="flex items-center space-x-1 px-2 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded"
-                    >
-                      <Eye className="h-4 w-4" />
-                      <span>View</span>
-                    </button>
-                  )}
-                  {file.url && (
-                    <a
-                      href={file.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center space-x-1 px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded"
-                      aria-label={`Download ${file.originalPath}`}
-                    >
-                      <Download className="h-4 w-4" />
-                      <span>Download</span>
-                    </a>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="p-6">
@@ -426,14 +379,14 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
       {/* Files */}
       {summary.totalFiles > 0 ? (
         <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">
-            Extracted Files
-          </h2>
+          <div className="flex items-center space-x-2 mb-6">
+            <Folder className="h-5 w-5 text-gray-600" />
+            <h2 className="text-xl font-semibold text-gray-900">
+              Extracted Files ({summary.totalFiles})
+            </h2>
+          </div>
           
-          <FileSection title="Images" icon={Image} files={files.images} type="images" />
-          <FileSection title="JSON Files" icon={Code} files={files.json} type="json" />
-          <FileSection title="Text Files" icon={FileText} files={files.text} type="text" />
-          <FileSection title="Binary Files" icon={Archive} files={files.binary} type="binary" />
+          <FileTree nodes={fileTree} onFileClick={setSelectedFile} />
         </div>
       ) : (
         <div className="bg-white border border-gray-200 rounded-lg p-6">
@@ -447,33 +400,8 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
         </div>
       )}
 
-      {/* File Content Modal */}
-      {selectedFile && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-4xl max-h-[80vh] w-full overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">
-                {selectedFile.originalPath}
-              </h3>
-              <button
-                onClick={() => setSelectedFile(null)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                ✕
-              </button>
-            </div>
-            
-            <div className="p-4 overflow-auto max-h-96">
-              <pre className="text-sm text-gray-900 whitespace-pre-wrap">
-                {typeof selectedFile.content === 'string' 
-                  ? selectedFile.content 
-                  : JSON.stringify(selectedFile.content, null, 2)
-                }
-              </pre>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* File Preview Modal */}
+      <FilePreviewModal file={selectedFile} onClose={() => setSelectedFile(null)} />
     </div>
   )
 }
