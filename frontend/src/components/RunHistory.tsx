@@ -212,9 +212,6 @@ export function RunHistory({ workflowId, workflowName, onBack, onRunSelect }: Ru
   const runs = data?.runs || []
   const pagination = data?.pagination as { page: number; limit: number; total: number; totalPages: number } | undefined
 
-  // Runs are already sorted by the backend (latest first)
-  const sortedRuns = runs
-
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
@@ -243,7 +240,7 @@ export function RunHistory({ workflowId, workflowName, onBack, onRunSelect }: Ru
             value={statusFilter}
             onChange={(e) => {
               setStatusFilter(e.target.value)
-              setPage(1) // Reset to first page when filtering
+              setPage(1)
             }}
             className="border border-gray-300 rounded-md px-3 py-1 text-sm"
           >
@@ -255,7 +252,7 @@ export function RunHistory({ workflowId, workflowName, onBack, onRunSelect }: Ru
         </div>
       </div>
 
-      {sortedRuns.length === 0 ? (
+      {runs.length === 0 ? (
         <div className="text-center py-12">
           <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No runs found</h3>
@@ -266,7 +263,7 @@ export function RunHistory({ workflowId, workflowName, onBack, onRunSelect }: Ru
       ) : (
         <>
           <div className="space-y-3">
-            {sortedRuns.map((run) => (
+            {runs.map((run) => (
               <RunCard
                 key={run.id}
                 run={run}

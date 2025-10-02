@@ -17,15 +17,15 @@ class Artifact {
     
     const values = [
       artifactData.id,
-      artifactData.runId || artifactData.run_id,
+      artifactData.runId,
       artifactData.name,
-      artifactData.size_in_bytes || artifactData.size,
-      artifactData.expired || false,
-      artifactData.created_at || new Date().toISOString(),
-      artifactData.updated_at || new Date().toISOString(),
-      artifactData.expires_at || null,
-      artifactData.url || null,
-      artifactData.archive_download_url || null
+      artifactData.size_in_bytes,
+      artifactData.expired,
+      artifactData.created_at,
+      artifactData.updated_at,
+      artifactData.expires_at,
+      artifactData.url,
+      artifactData.archive_download_url
     ]
     
     const result = await db.query(query, values)

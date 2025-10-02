@@ -121,7 +121,7 @@ class DataRecorderService {
           fileSize: file.size,
           storedFilename: file.storedFilename,
           storedUrl: file.url,
-          content: file.content || null
+          content: file.content
         }
         
         const storedFile = await ExtractedFile.create(fileData)

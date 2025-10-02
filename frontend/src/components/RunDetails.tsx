@@ -155,7 +155,7 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
                   )}
                   {file.url && (
                     <a
-                      href={`http://localhost:3001${file.url}`}
+                      href={file.url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center space-x-1 px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded"
