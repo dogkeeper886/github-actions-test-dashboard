@@ -216,8 +216,6 @@ class DataRecorderService {
         totalJobs++
       }
       
-      console.log(`✅ Complete run recording finished: ${totalFiles} files, ${totalJobs} jobs across ${artifacts.length} artifacts`)
-      
       return {
         run: storedRun,
         totalFiles,
