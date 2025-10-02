@@ -1,6 +1,10 @@
 const WorkflowRun = require('../models/WorkflowRun')
 const ExtractedFile = require('../models/ExtractedFile')
 const Artifact = require('../models/Artifact')
+const Job = require('../models/Job')
+const JobStep = require('../models/JobStep')
+const JobLog = require('../models/JobLog')
+const githubService = require('./github')
 const { getDatabase } = require('../database/connection')
 const { v4: uuidv4 } = require('uuid')
 
@@ -136,9 +140,10 @@ class DataRecorderService {
    * Record a complete workflow run with all its artifacts and files
    * @param {Object} runData - GitHub workflow run data
    * @param {Array} artifacts - Array of artifacts with extracted files
+   * @param {Array} jobs - Array of jobs from GitHub API
    * @returns {Object} Complete recording summary
    */
-  async recordCompleteRun(runData, artifacts = []) {
+  async recordCompleteRun(runData, artifacts = [], jobs = []) {
     try {
       console.log(`🔄 Recording complete run: ${runData.id}`)
       
@@ -178,12 +183,46 @@ class DataRecorderService {
         }
       }
       
-      console.log(`✅ Complete run recording finished: ${totalFiles} files across ${artifacts.length} artifacts`)
+      // 3. Record jobs, steps, and logs
+      let totalJobs = 0
+      for (const job of jobs) {
+        await Job.create({
+          id: job.id,
+          run_id: runData.id,
+          name: job.name,
+          status: job.status,
+          conclusion: job.conclusion,
+          started_at: job.started_at,
+          completed_at: job.completed_at,
+          url: job.url,
+          html_url: job.html_url
+        })
+        
+        // Record job steps
+        if (job.steps && job.steps.length > 0) {
+          await JobStep.createMultiple(job.id, job.steps)
+        }
+        
+        // Fetch and record job logs
+        if (job.status === 'completed') {
+          try {
+            const logs = await githubService.getJobLogs(job.id)
+            await JobLog.create(job.id, logs)
+          } catch (logError) {
+            console.log(`⚠️ Could not fetch logs for job ${job.id}:`, logError.message)
+          }
+        }
+        
+        totalJobs++
+      }
+      
+      console.log(`✅ Complete run recording finished: ${totalFiles} files, ${totalJobs} jobs across ${artifacts.length} artifacts`)
       
       return {
         run: storedRun,
         totalFiles,
         totalArtifacts: artifacts.length,
+        totalJobs,
         filesByArtifact
       }
     } catch (error) {

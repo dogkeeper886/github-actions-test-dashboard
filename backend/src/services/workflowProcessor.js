@@ -30,6 +30,10 @@ class WorkflowProcessorService {
         runData = await this.getRunData(runId)
       }
 
+      // Get jobs and their logs
+      const jobs = await githubService.getWorkflowRunJobs(runId)
+      console.log(`📋 Found ${jobs.length} jobs for run ${runId}`)
+      
       // Get artifacts and process them
       const artifacts = await githubService.getWorkflowRunArtifacts(runId)
       const processedArtifacts = []
@@ -46,7 +50,7 @@ class WorkflowProcessorService {
       }
 
       // Record everything in database
-      const recordingResult = await this.dataRecorder.recordCompleteRun(runData, processedArtifacts)
+      const recordingResult = await this.dataRecorder.recordCompleteRun(runData, processedArtifacts, jobs)
 
       console.log(`✅ Successfully processed and recorded run ${runId}`)
       return {

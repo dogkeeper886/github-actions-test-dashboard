@@ -1,8 +1,11 @@
 const express = require('express')
 const router = express.Router()
-const { getWorkflowRunJobs, getWorkflowRunArtifacts, processTestResults } = require('../services/github')
+const { getWorkflowRunArtifacts, processTestResults } = require('../services/github')
 const WorkflowRun = require('../models/WorkflowRun')
 const ExtractedFile = require('../models/ExtractedFile')
+const Job = require('../models/Job')
+const JobStep = require('../models/JobStep')
+const JobLog = require('../models/JobLog')
 const WorkflowProcessorService = require('../services/workflowProcessor')
 
 const workflowProcessor = new WorkflowProcessorService()
@@ -49,11 +52,20 @@ router.get('/:runId', async (req, res) => {
   }
 })
 
-// Get run jobs
+// Get run jobs with steps from database
 router.get('/:runId/jobs', async (req, res) => {
   try {
-    const jobs = await getWorkflowRunJobs(req.params.runId)
-    res.json(jobs)
+    const jobs = await Job.findByRunId(req.params.runId)
+    
+    // Enhance with steps
+    const jobsWithSteps = await Promise.all(
+      jobs.map(async (job) => {
+        const steps = await JobStep.findByJobId(job.id)
+        return { ...job, steps }
+      })
+    )
+    
+    res.json(jobsWithSteps)
   } catch (error) {
     console.error('Error fetching run jobs:', error)
     res.status(500).json({ error: error.message })
@@ -67,6 +79,23 @@ router.get('/:runId/artifacts', async (req, res) => {
     res.json(artifacts)
   } catch (error) {
     console.error('Error fetching run artifacts:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Get logs for a specific job from database
+router.get('/:runId/jobs/:jobId/logs', async (req, res) => {
+  try {
+    const jobLog = await JobLog.findByJobId(req.params.jobId)
+    
+    if (!jobLog) {
+      return res.status(404).json({ error: 'Job logs not found' })
+    }
+    
+    res.setHeader('Content-Type', 'text/plain')
+    res.send(jobLog.logs)
+  } catch (error) {
+    console.error('Error fetching job logs:', error)
     res.status(500).json({ error: error.message })
   }
 })
