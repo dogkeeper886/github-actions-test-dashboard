@@ -16,6 +16,7 @@ app.use(express.json())
 app.use('/api/workflows', require('./routes/workflows'))
 app.use('/api/runs', require('./routes/runs'))
 app.use('/api/tests', require('./routes/tests'))
+app.use('/api/refresh', require('./routes/refresh'))
 
 async function startServer() {
   try {
