@@ -2,7 +2,6 @@ const { Octokit } = require('@octokit/rest')
 const fs = require('fs-extra')
 const path = require('path')
 const yauzl = require('yauzl')
-const axios = require('axios')
 
 const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN })
 const owner = process.env.GITHUB_OWNER
@@ -101,42 +100,57 @@ function isTestArtifact(artifact) {
          artifact.name.toLowerCase().includes('cypress')
 }
 
+async function processTestFile(filePath, artifactName) {
+  const testData = await fs.readJson(filePath)
+  testData.artifactName = artifactName
+  return { type: 'tests', data: testData }
+}
+
+async function processScreenshot(filePath, runId, artifactName) {
+  const fileName = path.basename(filePath)
+  const screenshotName = `${runId}_${Date.now()}_${fileName}`
+  const screenshotStorePath = path.join(screenshotPath, screenshotName)
+  await fs.ensureDir(screenshotPath)
+  await fs.copy(filePath, screenshotStorePath)
+  
+  return {
+    type: 'screenshots',
+    data: {
+      originalName: fileName,
+      storedName: screenshotName,
+      path: screenshotStorePath,
+      artifactName
+    }
+  }
+}
+
+async function processLogFile(filePath, artifactName) {
+  const fileName = path.basename(filePath)
+  const logContent = await fs.readFile(filePath, 'utf8')
+  return {
+    type: 'logs',
+    data: {
+      name: fileName,
+      content: logContent,
+      artifactName
+    }
+  }
+}
+
 async function processArtifactFile(filePath, runId, artifactName) {
   const fileName = path.basename(filePath)
   const ext = path.extname(fileName).toLowerCase()
 
   if (ext === '.json' && fileName.includes('results')) {
-    const testData = await fs.readJson(filePath)
-    return { type: 'tests', data: parseTestResults(testData, artifactName) }
+    return await processTestFile(filePath, artifactName)
   }
   
   if (['.png', '.jpg', '.jpeg'].includes(ext)) {
-    const screenshotName = `${runId}_${Date.now()}_${fileName}`
-    const screenshotStorePath = path.join(screenshotPath, screenshotName)
-    await fs.ensureDir(screenshotPath)
-    await fs.copy(filePath, screenshotStorePath)
-    
-    return {
-      type: 'screenshots',
-      data: {
-        originalName: fileName,
-        storedName: screenshotName,
-        path: screenshotStorePath,
-        artifactName
-      }
-    }
+    return await processScreenshot(filePath, runId, artifactName)
   }
   
   if (ext === '.log' || ext === '.txt') {
-    const logContent = await fs.readFile(filePath, 'utf8')
-    return {
-      type: 'logs',
-      data: {
-        name: fileName,
-        content: logContent,
-        artifactName
-      }
-    }
+    return await processLogFile(filePath, artifactName)
   }
   
   return null
@@ -175,10 +189,6 @@ async function processTestResults(runId) {
   return results
 }
 
-function parseTestResults(testData, artifactName) {
-  testData.artifactName = artifactName
-  return testData
-}
 
 module.exports = {
   getWorkflows,
