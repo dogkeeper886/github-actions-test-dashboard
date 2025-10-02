@@ -54,20 +54,9 @@ async function downloadArtifact(artifactId, downloadPath) {
     archive_format: 'zip'
   })
 
-  const response = await axios({
-    method: 'GET',
-    url: data.url,
-    responseType: 'stream'
-  })
-
   await fs.ensureDir(path.dirname(downloadPath))
-  const writer = fs.createWriteStream(downloadPath)
-  response.data.pipe(writer)
-
-  return new Promise((resolve, reject) => {
-    writer.on('finish', () => resolve(downloadPath))
-    writer.on('error', reject)
-  })
+  await fs.writeFile(downloadPath, Buffer.from(data))
+  return downloadPath
 }
 
 async function extractArtifact(zipPath, extractPath) {
