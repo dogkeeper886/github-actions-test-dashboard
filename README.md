@@ -42,10 +42,13 @@ DATABASE_URL=postgresql://postgres:password@db:5432/test_dashboard
 docker-compose up -d
 ```
 
-5. Open your browser:
+5. Access the API:
 ```
-http://localhost:3000
+Backend API: http://localhost:3001
+API Endpoints: http://localhost:3001/api/workflows
 ```
+
+**Note:** Frontend UI is planned for future development. Currently you can interact with the REST API directly or use tools like curl/Postman.
 
 ## 📁 Project Structure
 
@@ -53,35 +56,35 @@ http://localhost:3000
 github-actions-test-dashboard/
 ├── backend/                 # Backend API and data collector
 │   ├── src/
-│   │   ├── api/            # REST API endpoints
-│   │   ├── collector/      # GitHub data collection service
-│   │   ├── db/             # Database models and migrations
-│   │   └── utils/          # Helper functions
-│   ├── package.json
-│   └── Dockerfile
-├── frontend/               # React frontend dashboard
-│   ├── src/
-│   │   ├── components/     # React components
-│   │   ├── pages/          # Page components
-│   │   ├── services/       # API client
-│   │   └── utils/          # Helper functions
+│   │   ├── routes/         # REST API endpoints
+│   │   ├── services/       # GitHub API integration
+│   │   ├── database/       # PostgreSQL connection and migrations
+│   │   ├── models/         # Data models (WorkflowRun, ExtractedFile)
+│   │   └── server.js       # Express server entry point
 │   ├── package.json
 │   └── Dockerfile
 ├── docs/                   # Documentation
 │   ├── PRD.md             # Product requirements
-│   ├── API.md             # API documentation
-│   └── SETUP.md           # Detailed setup guide
-├── docker-compose.yml      # Docker compose configuration
+│   ├── frontend-design.md # Frontend design specification
+│   ├── data-flow-design.md # Data collection and flow design
+│   └── simple-recording-design.md # Framework-agnostic approach
+├── data/                   # Local data storage
+│   ├── screenshots/        # Extracted screenshot files
+│   └── temp/              # Temporary extraction directory
+├── docker-compose.yml      # Docker compose with PostgreSQL
 ├── .env.example           # Environment variables template
 ├── .gitignore
 └── README.md
 ```
 
+**Note:** Frontend is planned for future development. Currently backend-only with comprehensive API.
+
 ## 📖 Documentation
 
-- [Product Requirements (PRD)](docs/PRD.md) - What this product does
-- [Setup Guide](docs/SETUP.md) - Detailed installation instructions
-- [API Documentation](docs/API.md) - Backend API reference
+- [Product Requirements (PRD)](docs/PRD.md) - What this product does and goals
+- [Frontend Design](docs/frontend-design.md) - Complete UI/UX specification
+- [Data Flow Design](docs/data-flow-design.md) - How data collection works
+- [Simple Recording Design](docs/simple-recording-design.md) - Framework-agnostic approach
 
 ## 🛠️ Development
 
@@ -91,22 +94,27 @@ github-actions-test-dashboard/
 ```bash
 cd backend
 npm install
-npm run dev
-```
-
-**Frontend:**
-```bash
-cd frontend
-npm install
 npm start
 ```
 
 **Database:**
 ```bash
-# Make sure PostgreSQL is running
-createdb test_dashboard
-cd backend
-npm run migrate
+# Make sure PostgreSQL is running locally
+createdb github_actions_dashboard
+# Set DATABASE_URL in .env to point to local PostgreSQL
+# Database migrations run automatically on server start
+```
+
+**Manual Data Collection:**
+```bash
+# Trigger manual refresh via API
+curl -X POST http://localhost:3001/api/refresh
+
+# View collected workflows
+curl http://localhost:3001/api/workflows
+
+# View workflow runs
+curl http://localhost:3001/api/workflows/WORKFLOW_ID/runs
 ```
 
 ## 🔧 Configuration
@@ -124,9 +132,9 @@ Your GitHub Personal Access Token needs:
 | `GITHUB_OWNER` | Repository owner (username or org) | Yes | - |
 | `GITHUB_REPO` | Repository name | Yes | - |
 | `DATABASE_URL` | PostgreSQL connection string | Yes | - |
+| `DATABASE_SSL` | Enable SSL for database connection | No | false |
 | `PORT` | Backend API port | No | 3001 |
 | `POLL_INTERVAL_MINUTES` | How often to check for new runs | No | 5 |
-| `SCREENSHOT_STORAGE_PATH` | Where to store screenshots | No | ./data/screenshots |
 
 ## 🧪 Testing
 
@@ -142,21 +150,27 @@ npm test
 
 ## 📊 Features
 
-### Current (v1.0)
-- [x] View all workflows and their status
-- [x] Browse workflow run history
-- [x] See test results with failures first
-- [x] View test logs with syntax highlighting
-- [x] Display screenshots inline (no downloads!)
-- [x] Search and filter tests
-- [x] Track test history and trends
+### Current (Backend v1.0)
+- [x] GitHub Actions API integration
+- [x] Automatic artifact download and extraction
+- [x] PostgreSQL database for persistent storage
+- [x] File categorization (images, JSON, text, binary)
+- [x] REST API for workflow and run data
+- [x] Manual refresh capability
+- [x] Framework-agnostic file recording
 
-### Planned (Future)
+### In Progress
+- [ ] Periodic data collection service
+- [ ] Enhanced API endpoints with pagination
+- [ ] File content serving and search
+
+### Planned (Frontend + Features)
+- [ ] React dashboard UI
+- [ ] Inline screenshot viewing
+- [ ] File content viewers (JSON, logs)
+- [ ] Search and filtering
 - [ ] Multi-repository support
 - [ ] Real-time updates via webhooks
-- [ ] Slack/email notifications
-- [ ] Team collaboration features
-- [ ] AI-powered failure analysis
 
 ## 🤝 Contributing
 
@@ -184,6 +198,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Status:** 🚧 In Development
+**Status:** 🚧 Backend Complete, Frontend In Planning
+
+**Current Phase:** Enhanced data collection and periodic polling  
+**Next Phase:** Frontend dashboard development
 
 Made with ❤️ for QA Engineers and developers who value their time

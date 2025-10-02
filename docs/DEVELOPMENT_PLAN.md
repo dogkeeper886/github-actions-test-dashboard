@@ -2,12 +2,12 @@
 
 ## Priority Table
 
-| Priority | Phase | Feature/Component | Effort | Dependencies | Business Value | Technical Risk |
-|----------|-------|-------------------|---------|--------------|----------------|----------------|
-| **P0** | **Foundation** | Project Setup & Infrastructure | Medium | None | Critical | Low |
-| P0 | Foundation | Database Schema & Models | Medium | Project Setup | Critical | Low |
-| P0 | Foundation | GitHub API Integration | High | DB Models | Critical | Medium |
-| P0 | Foundation | Basic Data Collector Service | High | GitHub API | Critical | Medium |
+| Priority | Phase | Feature/Component | Effort | Dependencies | Business Value | Technical Risk | Status |
+|----------|-------|-------------------|---------|--------------|----------------|----------------|--------|
+| **P0** | **Foundation** | Project Setup & Infrastructure | Medium | None | Critical | Low | ✅ **DONE** |
+| P0 | Foundation | Database Schema & Models | Medium | Project Setup | Critical | Low | ✅ **DONE** |
+| P0 | Foundation | GitHub API Integration | High | DB Models | Critical | Medium | ✅ **DONE** |
+| P0 | Foundation | Basic Data Collector Service | High | GitHub API | Critical | Medium | 🔄 **IN PROGRESS** |
 | **P1** | **Core MVP** | Workflow List View | Medium | Data Collector | High | Low |
 | P1 | Core MVP | Workflow Run History | Medium | Workflow List | High | Low |
 | P1 | Core MVP | Test Results Dashboard | High | Run History | Critical | Medium |
@@ -30,20 +30,28 @@
 
 ## Phase Breakdown
 
-### **Phase 0: Foundation (P0)**
+### **Phase 0: Foundation (P0)** ✅ **COMPLETED**
 **Goal:** Get basic infrastructure running and data flowing
-- Set up project structure (backend/frontend/docker)
-- Create database schema for workflows, runs, tests
-- Implement GitHub API client
-- Build data collector that polls GitHub and stores results
-- **Success Criteria:** Data is being collected and stored
+- ✅ Set up project structure (backend/docker) 
+- ✅ Create PostgreSQL database schema for workflows, runs, files
+- ✅ Implement GitHub API client with Octokit
+- ✅ Build artifact download and file extraction system
+- 🔄 Build data collector that polls GitHub and stores results (IN PROGRESS)
+- **Success Criteria:** ✅ Data is being collected and stored
 
-### **Phase 1: Core MVP (P1)** 
-**Goal:** Basic dashboard functionality
-- Display workflows and their runs
-- Show test results with basic formatting
-- View individual test logs
-- **Success Criteria:** Users can see their test results in the dashboard
+**Current Status:** Infrastructure complete, database operational, API working. Ready for enhanced data collection.
+
+### **Phase 1: Core MVP (P1)** 🔄 **CURRENT PHASE**
+**Goal:** Enhanced data collection and basic dashboard functionality
+- 🔄 Implement periodic data collection (every 5 minutes)
+- 🔄 Store workflow runs and extracted files in database
+- 🔄 Build manual refresh capability
+- ⏳ Display workflows and their runs (frontend needed)
+- ⏳ Show file results with categorization (frontend needed)
+- ⏳ View individual file content (frontend needed)
+- **Success Criteria:** Users can see their workflow results in the dashboard
+
+**Next Steps:** Complete data collection service, then build frontend components.
 
 ### **Phase 2: Essential UX (P2)**
 **Goal:** Key differentiators that solve the main pain points
