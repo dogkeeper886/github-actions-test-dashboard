@@ -190,8 +190,11 @@ export const workflowsApi = {
   getRunJobs: (runId: string): Promise<Job[]> =>
     apiClient.get(`/runs/${runId}/jobs`),
     
-  getJobLogs: (runId: string, jobId: number): Promise<string> =>
-    apiClient.get(`/runs/${runId}/jobs/${jobId}/logs`),
+  getJobLogs: async (runId: string, jobId: number): Promise<string> => {
+    const response = await fetch(`${API_BASE_URL}/runs/${runId}/jobs/${jobId}/logs`)
+    if (!response.ok) throw new Error(`API Error: ${response.status}`)
+    return response.text()
+  },
     
   refreshData: (): Promise<unknown> =>
     apiClient.post('/refresh/collect'),
