@@ -1,206 +1,289 @@
 # GitHub Actions Test Dashboard
 
-A self-hosted web dashboard for visualizing GitHub Actions workflow test results with inline screenshots and easy-to-read logs.
+A self-hosted dashboard that automatically collects and displays your GitHub Actions test results with screenshots, logs, and file artifacts - all in one place.
 
-## 🎯 Purpose
+## What You Get
 
-Stop wasting time clicking through GitHub's UI to debug test failures. This dashboard gives you:
-- ✅ **Instant failure visibility** - Failed tests shown first
-- 📸 **Inline screenshots** - No artifact downloads needed
-- 📋 **Readable logs** - Syntax highlighting and search
-- 📊 **Test history** - Track trends and find flaky tests
+### 📸 **See Your Test Screenshots Instantly**
+No more downloading artifacts and unzipping them. Every screenshot from your test runs is displayed in a file browser with instant preview.
 
-## 🚀 Quick Start
+### 📋 **Browse Test Results Like Files**
+All your test artifacts (screenshots, logs, JSON reports) are organized in a familiar folder structure. Click to preview, download what you need.
 
-### Prerequisites
-- Docker and Docker Compose
-- GitHub Personal Access Token with `repo` and `actions:read` scopes
+### 🔍 **Job Logs and Steps**
+View job logs and individual step status for every workflow run. No need to navigate through GitHub's UI.
 
-### Setup
+### ⚡ **Automatic Updates**
+The dashboard starts collecting data immediately and checks for new runs every 5 minutes. Click "Refresh Data" anytime for instant updates.
 
-1. Clone the repository:
-```bash
-git clone https://github.com/YOUR_USERNAME/github-actions-test-dashboard.git
-cd github-actions-test-dashboard
-```
-
-2. Create `.env` file:
-```bash
-cp .env.example .env
-```
-
-3. Configure your `.env`:
-```env
-GITHUB_TOKEN=your_github_personal_access_token
-GITHUB_OWNER=your_github_username_or_org
-GITHUB_REPO=your_repository_name
-DATABASE_URL=postgresql://postgres:password@db:5432/test_dashboard
-```
-
-4. Start the application:
-```bash
-docker-compose up -d
-```
-
-5. Access the API:
-```
-Backend API: http://localhost:3001
-API Endpoints: http://localhost:3001/api/workflows
-```
-
-**Note:** Frontend UI is planned for future development. Currently you can interact with the REST API directly or use tools like curl/Postman.
-
-## 📁 Project Structure
-
-```
-github-actions-test-dashboard/
-├── backend/                 # Backend API and data collector
-│   ├── src/
-│   │   ├── routes/         # REST API endpoints
-│   │   ├── services/       # GitHub API integration
-│   │   ├── database/       # PostgreSQL connection and migrations
-│   │   ├── models/         # Data models (WorkflowRun, ExtractedFile)
-│   │   └── server.js       # Express server entry point
-│   ├── package.json
-│   └── Dockerfile
-├── docs/                   # Documentation
-│   ├── PRD.md             # Product requirements
-│   ├── frontend-design.md # Frontend design specification
-│   ├── data-flow-design.md # Data collection and flow design
-│   └── simple-recording-design.md # Framework-agnostic approach
-├── data/                   # Local data storage
-│   ├── screenshots/        # Extracted screenshot files
-│   └── temp/              # Temporary extraction directory
-├── docker-compose.yml      # Docker compose with PostgreSQL
-├── .env.example           # Environment variables template
-├── .gitignore
-└── README.md
-```
-
-**Note:** Frontend is planned for future development. Currently backend-only with comprehensive API.
-
-## 📖 Documentation
-
-- [Product Requirements (PRD)](docs/PRD.md) - What this product does and goals
-- [Frontend Design](docs/frontend-design.md) - Complete UI/UX specification
-- [Data Flow Design](docs/data-flow-design.md) - How data collection works
-- [Simple Recording Design](docs/simple-recording-design.md) - Framework-agnostic approach
-
-## 🛠️ Development
-
-### Running locally without Docker
-
-**Backend:**
-```bash
-cd backend
-npm install
-npm start
-```
-
-**Database:**
-```bash
-# Make sure PostgreSQL is running locally
-createdb github_actions_dashboard
-# Set DATABASE_URL in .env to point to local PostgreSQL
-# Database migrations run automatically on server start
-```
-
-**Manual Data Collection:**
-```bash
-# Trigger manual refresh via API
-curl -X POST http://localhost:3001/api/refresh
-
-# View collected workflows
-curl http://localhost:3001/api/workflows
-
-# View workflow runs
-curl http://localhost:3001/api/workflows/WORKFLOW_ID/runs
-```
-
-## 🔧 Configuration
-
-### GitHub Token Permissions
-Your GitHub Personal Access Token needs:
-- `repo` - Full repository access
-- `actions:read` - Read workflow runs and artifacts
-
-### Environment Variables
-
-| Variable | Description | Required | Default |
-|----------|-------------|----------|---------|
-| `GITHUB_TOKEN` | GitHub Personal Access Token | Yes | - |
-| `GITHUB_OWNER` | Repository owner (username or org) | Yes | - |
-| `GITHUB_REPO` | Repository name | Yes | - |
-| `DATABASE_URL` | PostgreSQL connection string | Yes | - |
-| `DATABASE_SSL` | Enable SSL for database connection | No | false |
-| `PORT` | Backend API port | No | 3001 |
-| `POLL_INTERVAL_MINUTES` | How often to check for new runs | No | 5 |
-
-## 🧪 Testing
-
-```bash
-# Backend tests
-cd backend
-npm test
-
-# Frontend tests
-cd frontend
-npm test
-```
-
-## 📊 Features
-
-### Current (Backend v1.0)
-- [x] GitHub Actions API integration
-- [x] Automatic artifact download and extraction
-- [x] PostgreSQL database for persistent storage
-- [x] File categorization (images, JSON, text, binary)
-- [x] REST API for workflow and run data
-- [x] Manual refresh capability
-- [x] Framework-agnostic file recording
-
-### In Progress
-- [ ] Periodic data collection service
-- [ ] Enhanced API endpoints with pagination
-- [ ] File content serving and search
-
-### Planned (Frontend + Features)
-- [ ] React dashboard UI
-- [ ] Inline screenshot viewing
-- [ ] File content viewers (JSON, logs)
-- [ ] Search and filtering
-- [ ] Multi-repository support
-- [ ] Real-time updates via webhooks
-
-## 🤝 Contributing
-
-Contributions are welcome! Please read our contributing guidelines before submitting PRs.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- Built for teams frustrated with GitHub Actions' native test reporting
-- Inspired by Allure Report and ReportPortal
-
-## 📧 Support
-
-- Issues: [GitHub Issues](https://github.com/YOUR_USERNAME/github-actions-test-dashboard/issues)
-- Discussions: [GitHub Discussions](https://github.com/YOUR_USERNAME/github-actions-test-dashboard/discussions)
+### 🎯 **Latest First**
+Runs are sorted with the newest at the top. Focus on what just happened.
 
 ---
 
-**Status:** 🚧 Backend Complete, Frontend In Planning
+## Quick Start
 
-**Current Phase:** Enhanced data collection and periodic polling  
-**Next Phase:** Frontend dashboard development
+### 1. Prerequisites
+- Docker and Docker Compose installed
+- A GitHub Personal Access Token ([create one here](https://github.com/settings/tokens))
+  - Needs `repo` and `actions:read` scopes
 
-Made with ❤️ for QA Engineers and developers who value their time
+### 2. Setup
+
+```bash
+# Clone and enter directory
+git clone <your-repo-url>
+cd github-actions-test-dashboard
+
+# Copy environment template
+cp env.example .env
+
+# Edit .env with your details
+nano .env
+```
+
+Your `.env` should look like:
+```env
+GITHUB_TOKEN=ghp_your_token_here
+GITHUB_OWNER=your-username-or-org
+GITHUB_REPO=your-repo-name
+```
+
+### 3. Start
+
+```bash
+docker compose up -d
+```
+
+### 4. Open
+
+Visit **http://localhost** (or your server IP) in your browser.
+
+That's it! The dashboard will start collecting your workflow data automatically.
+
+---
+
+## How It Works
+
+### On First Start
+1. Connects to GitHub and fetches your workflows
+2. Downloads recent workflow runs (last 50)
+3. Extracts all artifacts (screenshots, logs, reports)
+4. Stores everything in a local PostgreSQL database
+
+### Ongoing
+- Checks GitHub every 5 minutes for new runs
+- Automatically processes completed runs
+- Extracts and stores all artifacts
+- Updates the dashboard in real-time
+
+### Manual Refresh
+Click the "Refresh Data" button to fetch the latest runs immediately.
+
+---
+
+## What You Can Do
+
+### View Workflows
+- See all your workflows at a glance
+- Check latest run status and success rate
+- Click any workflow to see its run history
+
+### Browse Runs
+- Runs sorted newest first
+- See status, duration, commit info
+- File count for each run
+
+### Inspect Run Details
+- **Jobs & Steps**: Expand to see each job's steps and their status
+- **Logs**: View complete job logs right in the dashboard
+- **Files**: Browse extracted artifacts in a tree view
+  - Screenshots (PNG, JPG)
+  - JSON reports
+  - Text logs
+  - Other files
+
+### Preview Files
+- **Images**: Click to preview screenshots
+- **JSON**: Formatted and readable
+- **Text**: Plain text viewer
+- **Download**: Get any file with one click
+
+---
+
+## Configuration
+
+### Environment Variables
+
+| Variable | What It Does | Required |
+|----------|-------------|----------|
+| `GITHUB_TOKEN` | Your GitHub Personal Access Token | ✅ |
+| `GITHUB_OWNER` | Repository owner (username or org) | ✅ |
+| `GITHUB_REPO` | Repository name | ✅ |
+| `PORT` | Backend API port (default: 3001) | ❌ |
+| `POLL_INTERVAL_MINUTES` | How often to check GitHub (default: 5) | ❌ |
+
+### Docker Ports
+- **80**: Web dashboard (mapped to Nginx)
+- **3001**: Backend API (internal)
+- **3000**: Frontend (internal)
+- **5432**: PostgreSQL (internal)
+
+### Data Storage
+All data is stored in Docker volumes:
+- `postgres_data`: Database
+- `screenshot_data`: Extracted files
+- `temp_data`: Temporary downloads
+
+### Clean Start
+To wipe all data and start fresh:
+```bash
+docker compose down -v
+docker compose up -d
+```
+
+---
+
+## Troubleshooting
+
+### Dashboard shows no workflows
+- Check your `GITHUB_TOKEN` has correct permissions
+- Verify `GITHUB_OWNER` and `GITHUB_REPO` are correct
+- Check backend logs: `docker logs github-actions-test-dashboard-backend-1`
+
+### "Refresh already in progress" error
+The dashboard is already fetching data. Wait a moment and try again.
+
+### No screenshots showing
+- Make sure your workflow uploads artifacts
+- The artifact must contain files (screenshots, logs, etc.)
+- Expired artifacts cannot be downloaded
+
+### Backend not starting
+```bash
+# Check logs
+docker logs github-actions-test-dashboard-backend-1
+
+# Common fixes:
+# 1. Invalid GitHub token - update .env and restart
+# 2. Database not ready - wait 10 seconds and check again
+# 3. Port conflict - change PORT in .env
+```
+
+---
+
+## For Developers
+
+### Project Structure
+```
+├── backend/                 # Express.js API + Data Collector
+│   ├── src/
+│   │   ├── routes/         # API endpoints
+│   │   ├── services/       # GitHub API, data processing
+│   │   ├── models/         # Database models
+│   │   └── database/       # PostgreSQL migrations
+├── frontend/               # Next.js dashboard
+│   ├── src/
+│   │   ├── components/     # React components
+│   │   ├── lib/           # API client, utilities
+│   │   └── app/           # Pages and layouts
+├── nginx/                  # Nginx reverse proxy config
+├── docs/                   # Design documents
+└── docker-compose.yml      # All services defined here
+```
+
+### Local Development
+
+**Backend**:
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+**Frontend**:
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+**Database**:
+```bash
+# Use Docker for PostgreSQL
+docker compose up -d database
+```
+
+### API Endpoints
+
+- `GET /api/workflows` - List all workflows
+- `GET /api/workflows/:id/runs` - List runs for a workflow
+- `GET /api/runs/:id/files` - Get run details and files
+- `GET /api/runs/:id/jobs` - Get jobs and steps
+- `GET /api/runs/:id/jobs/:jobId/logs` - Get job logs
+- `POST /api/refresh/collect` - Trigger manual refresh
+- `GET /api/refresh/status` - Check collection status
+- `GET /api/files/:filename` - Download extracted file
+
+### Code Guidelines
+
+See [CLAUDE.md](CLAUDE.md) for our code review principles:
+- Simplicity first
+- Fail fast, no defensive programming
+- General solutions over specific cases
+- Consistent patterns everywhere
+
+---
+
+## Tech Stack
+
+- **Backend**: Node.js + Express.js
+- **Frontend**: Next.js + React + Tailwind CSS
+- **Database**: PostgreSQL
+- **API Client**: Octokit (GitHub API)
+- **Reverse Proxy**: Nginx
+- **Deployment**: Docker + Docker Compose
+
+---
+
+## Roadmap
+
+### ✅ Completed
+- Automatic data collection on startup
+- Periodic polling (every 5 minutes)
+- Manual refresh button
+- File manager with tree view
+- Image/JSON/text preview
+- Job logs and steps display
+- Concurrent request protection
+- Hash-based unique file naming
+
+### 🚧 Future Ideas
+- Multi-repository support
+- Search and filtering
+- Real-time updates via webhooks
+- Test trend analysis
+- Flaky test detection
+- Custom artifact handling
+
+---
+
+## Contributing
+
+Found a bug or have an idea? [Open an issue](https://github.com/YOUR_USERNAME/github-actions-test-dashboard/issues)!
+
+Pull requests welcome:
+1. Fork the repo
+2. Create a feature branch
+3. Make your changes
+4. Submit a PR
+
+---
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
+**Made for developers who want to see their test results, not dig through GitHub's UI.**
