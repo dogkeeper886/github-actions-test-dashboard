@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { workflowsApi, type Job } from '@/lib/api'
+import { workflowsApi } from '@/lib/api'
 import { CheckCircle, XCircle, Clock, AlertCircle, ArrowLeft, FileText, Image, Code, Archive, Download, Eye, ChevronDown, ChevronRight, Terminal } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { useState } from 'react'
@@ -11,25 +11,60 @@ interface RunDetailsProps {
   onBack: () => void
 }
 
+function JobLogsSection({ runId, jobId, isExpanded, onToggle }: {
+  runId: string
+  jobId: number
+  isExpanded: boolean
+  onToggle: () => void
+}) {
+  const { data: logs } = useQuery({
+    queryKey: ['job-logs', runId, jobId],
+    queryFn: () => workflowsApi.getJobLogs(runId, jobId),
+    enabled: isExpanded,
+  })
+
+  return (
+    <div className="border-t border-gray-200 bg-white">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-start space-x-3 p-4 hover:bg-gray-50 text-left"
+      >
+        <Terminal className="h-4 w-4 text-gray-600 mt-0.5" />
+        <div className="flex-1">
+          <p className="text-sm font-medium text-gray-900">View Logs</p>
+          <p className="text-xs text-gray-500 mt-0.5">Complete job output</p>
+        </div>
+        {isExpanded ? (
+          <ChevronDown className="h-4 w-4 text-gray-600 mt-0.5" />
+        ) : (
+          <ChevronRight className="h-4 w-4 text-gray-600 mt-0.5" />
+        )}
+      </button>
+      
+      {isExpanded && logs && (
+        <div className="px-4 pb-4">
+          <div className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto">
+            <pre className="text-xs font-mono whitespace-pre">{logs}</pre>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function RunDetails({ runId, onBack }: RunDetailsProps) {
   const [selectedFile, setSelectedFile] = useState<{ id: string; originalPath: string; size: number; artifactName: string; content?: unknown; url?: string } | null>(null)
   const [expandedJobs, setExpandedJobs] = useState<Set<number>>(new Set())
-  const [selectedJobForLogs, setSelectedJobForLogs] = useState<number | null>(null)
+  const [expandedLogs, setExpandedLogs] = useState<Set<number>>(new Set())
   
   const { data, isLoading, error } = useQuery({
     queryKey: ['run-details', runId],
     queryFn: () => workflowsApi.getRunDetails(runId),
   })
 
-  const { data: jobs, isLoading: jobsLoading } = useQuery({
+  const { data: jobs } = useQuery({
     queryKey: ['run-jobs', runId],
     queryFn: () => workflowsApi.getRunJobs(runId),
-  })
-
-  const { data: logs } = useQuery({
-    queryKey: ['job-logs', runId, selectedJobForLogs],
-    queryFn: () => workflowsApi.getJobLogs(runId, selectedJobForLogs!),
-    enabled: selectedJobForLogs !== null,
   })
 
   if (isLoading) {
@@ -131,6 +166,16 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
       newExpanded.add(jobId)
     }
     setExpandedJobs(newExpanded)
+  }
+
+  const toggleLogsExpanded = (jobId: number) => {
+    const newExpanded = new Set(expandedLogs)
+    if (newExpanded.has(jobId)) {
+      newExpanded.delete(jobId)
+    } else {
+      newExpanded.add(jobId)
+    }
+    setExpandedLogs(newExpanded)
   }
 
   const getStepStatusIcon = (status: string, conclusion: string | null) => {
@@ -286,7 +331,7 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
           <div className="space-y-3">
             {jobs.map((job) => {
               const isExpanded = expandedJobs.has(job.id)
-              const isLogSelected = selectedJobForLogs === job.id
+              const isLogsExpanded = expandedLogs.has(job.id)
               
               return (
                 <div key={job.id} className="border border-gray-200 rounded-lg overflow-hidden">
@@ -326,20 +371,6 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
                           </div>
                         </div>
                       </div>
-                      
-                      {job.status === 'completed' && (
-                        <button
-                          onClick={() => setSelectedJobForLogs(isLogSelected ? null : job.id)}
-                          className={`flex items-center space-x-2 px-3 py-1.5 text-sm rounded ${
-                            isLogSelected
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                          }`}
-                        >
-                          <Terminal className="h-4 w-4" />
-                          <span>{isLogSelected ? 'Hide Logs' : 'View Logs'}</span>
-                        </button>
-                      )}
                     </div>
                   </div>
                   
@@ -375,33 +406,19 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
                       </div>
                     </div>
                   )}
+                  
+                  {/* Job Logs (collapsible like steps) */}
+                  {isExpanded && job.status === 'completed' && (
+                    <JobLogsSection 
+                      runId={runId}
+                      jobId={job.id}
+                      isExpanded={isLogsExpanded}
+                      onToggle={() => toggleLogsExpanded(job.id)}
+                    />
+                  )}
                 </div>
               )
             })}
-          </div>
-        </div>
-      )}
-
-      {/* Job Logs Panel */}
-      {selectedJobForLogs && logs && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-2">
-              <Terminal className="h-5 w-5 text-gray-600" />
-              <h2 className="text-xl font-semibold text-gray-900">
-                Job Logs: {jobs?.find(j => j.id === selectedJobForLogs)?.name}
-              </h2>
-            </div>
-            <button
-              onClick={() => setSelectedJobForLogs(null)}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              ✕
-            </button>
-          </div>
-          
-          <div className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto">
-            <pre className="text-xs font-mono whitespace-pre">{logs}</pre>
           </div>
         </div>
       )}
