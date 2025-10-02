@@ -36,6 +36,15 @@ async function getWorkflowRunJobs(runId) {
   return data.jobs
 }
 
+async function getJobLogs(jobId) {
+  const { data } = await octokit.rest.actions.downloadJobLogsForWorkflowRun({
+    owner,
+    repo,
+    job_id: jobId
+  })
+  return data
+}
+
 async function getWorkflowRunArtifacts(runId) {
   const { data } = await octokit.rest.actions.listWorkflowRunArtifacts({
     owner,
@@ -194,6 +203,7 @@ module.exports = {
   getWorkflows,
   getWorkflowRuns,
   getWorkflowRunJobs,
+  getJobLogs,
   getWorkflowRunArtifacts,
   downloadArtifact,
   extractArtifact,
