@@ -6,6 +6,7 @@ class DataCollectorService {
   constructor() {
     this.pollInterval = parseInt(process.env.POLL_INTERVAL_MINUTES) || 5
     this.isRunning = false
+    this.isCollecting = false
     this.workflowProcessor = new WorkflowProcessorService()
     this.dataRecorder = new DataRecorderService()
   }
@@ -13,7 +14,7 @@ class DataCollectorService {
   /**
    * Start periodic data collection
    */
-  start() {
+  async start() {
     if (this.isRunning) {
       console.log('Data collector already running')
       return
@@ -21,6 +22,11 @@ class DataCollectorService {
 
     console.log(`🔄 Starting periodic data collection (${this.pollInterval}m intervals)`)
     this.isRunning = true
+    
+    // Run initial collection immediately on startup
+    await this.collectNewData()
+    
+    // Then schedule periodic polls
     this.scheduleNextPoll()
   }
 
@@ -56,7 +62,13 @@ class DataCollectorService {
    * Collect new workflow data since last sync
    */
   async collectNewData() {
+    if (this.isCollecting) {
+      console.log('⏳ Collection already in progress, skipping')
+      throw new Error('Collection already in progress')
+    }
+
     try {
+      this.isCollecting = true
       console.log('🔍 Checking for new workflow data...')
       
       const startTime = Date.now()
@@ -134,6 +146,8 @@ class DataCollectorService {
     } catch (error) {
       console.error('❌ Periodic data collection failed:', error)
       throw error
+    } finally {
+      this.isCollecting = false
     }
   }
 
@@ -207,6 +221,7 @@ class DataCollectorService {
   getStatus() {
     return {
       isRunning: this.isRunning,
+      isCollecting: this.isCollecting,
       pollInterval: this.pollInterval,
       nextPollIn: this.isRunning ? `${this.pollInterval} minutes` : 'stopped'
     }

@@ -131,6 +131,14 @@ router.post('/collect', async (req, res) => {
       result
     })
   } catch (error) {
+    if (error.message === 'Collection already in progress') {
+      return res.status(409).json({
+        success: false,
+        inProgress: true,
+        error: error.message
+      })
+    }
+    
     console.error('Force collection failed:', error)
     res.status(500).json({
       success: false,

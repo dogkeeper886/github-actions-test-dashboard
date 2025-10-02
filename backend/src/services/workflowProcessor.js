@@ -97,9 +97,7 @@ class WorkflowProcessorService {
       await fs.remove(extractPath)
 
       return {
-        id: artifact.id,
-        name: artifact.name,
-        size: artifact.size,
+        ...artifact,
         extractedFiles: processedFiles
       }
 
@@ -119,15 +117,16 @@ class WorkflowProcessorService {
   async processExtractedFile(filePath, runId, artifactName) {
     const path = require('path')
     const fs = require('fs-extra')
+    const crypto = require('crypto')
 
     try {
       const fileName = path.basename(filePath)
       const ext = path.extname(fileName).toLowerCase()
       const stats = await fs.stat(filePath)
       
-      // Generate stored filename with run ID prefix for uniqueness
-      const timestamp = Date.now()
-      const storedFilename = `${runId}_${timestamp}_${fileName}`
+      // Generate stored filename with unique hash to avoid collisions
+      const hash = crypto.createHash('md5').update(filePath).digest('hex').substring(0, 8)
+      const storedFilename = `${runId}_${hash}_${fileName}`
       
       const baseFile = {
         originalPath: path.relative('./temp', filePath),

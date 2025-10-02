@@ -128,7 +128,7 @@ interface WorkflowListProps {
 }
 
 export function WorkflowList({ onWorkflowSelect }: WorkflowListProps) {
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, isFetching, error } = useQuery({
     queryKey: ['workflows'],
     queryFn: workflowsApi.getWorkflows,
   })
@@ -201,7 +201,14 @@ export function WorkflowList({ onWorkflowSelect }: WorkflowListProps) {
   })
 
   return (
-    <div className="p-6">
+    <div className="p-6 relative">
+      {isFetching && (
+        <div className="absolute top-4 right-4 flex items-center space-x-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+          <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+          <span className="text-sm text-blue-700">Updating...</span>
+        </div>
+      )}
+      
       <div className="mb-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-2">
           Workflows ({data.workflows.length})
