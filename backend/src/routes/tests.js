@@ -30,14 +30,10 @@ router.get('/:testName/history', async (req, res) => {
 })
 
 // Serve screenshot files
-router.get('/screenshots/:filename', async (req, res) => {
+router.get('/screenshots/:filename', (req, res) => {
   const { filename } = req.params
   const screenshotPath = process.env.SCREENSHOT_STORAGE_PATH || './data/screenshots'
   const filePath = path.join(screenshotPath, filename)
-  
-  if (!await fs.pathExists(filePath)) {
-    return res.status(404).json({ error: 'Screenshot not found' })
-  }
   
   res.sendFile(path.resolve(filePath))
 })
