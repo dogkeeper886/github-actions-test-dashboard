@@ -7,23 +7,19 @@ router.get('/:runId', async (req, res) => {
   const jobs = await getWorkflowRunJobs(req.params.runId)
   const artifacts = await getWorkflowRunArtifacts(req.params.runId)
   
-  res.json({
-    runId: req.params.runId,
-    jobs,
-    artifacts
-  })
+  res.json({ jobs, artifacts })
 })
 
 // Get run jobs
 router.get('/:runId/jobs', async (req, res) => {
   const jobs = await getWorkflowRunJobs(req.params.runId)
-  res.json({ jobs })
+  res.json(jobs)
 })
 
 // Get run artifacts
 router.get('/:runId/artifacts', async (req, res) => {
   const artifacts = await getWorkflowRunArtifacts(req.params.runId)
-  res.json({ artifacts })
+  res.json(artifacts)
 })
 
 // Process and get test results for a run

@@ -5,14 +5,14 @@ const { getWorkflows, getWorkflowRuns } = require('../services/github')
 // Get all workflows
 router.get('/', async (req, res) => {
   const workflows = await getWorkflows()
-  res.json({ workflows })
+  res.json(workflows)
 })
 
 // Get specific workflow by ID
 router.get('/:workflowId', async (req, res) => {
   const workflows = await getWorkflows()
-  const workflow = workflows.find(w => w.id.toString() === req.params.workflowId)
-  res.json({ workflow })
+  const workflow = workflows.find(w => w.id == req.params.workflowId)
+  res.json(workflow)
 })
 
 // Get workflow runs

@@ -14,7 +14,7 @@ async function getWorkflows() {
   return data.workflows
 }
 
-async function getWorkflowRuns(workflowId, options = {}) {
+async function getWorkflowRuns(workflowId, options) {
   const params = {
     owner,
     repo,
@@ -187,63 +187,8 @@ async function processTestResults(runId) {
 }
 
 function parseTestResults(testData, artifactName) {
-  const tests = []
-
-  if (testData.suites) {
-    parsePlaywrightResults(testData, tests, artifactName)
-  } else if (testData.testResults) {
-    parseJestResults(testData, tests, artifactName)
-  } else if (Array.isArray(testData.tests)) {
-    tests.push(...testData.tests.map(test => ({
-      name: test.name || test.title,
-      status: test.status || test.state,
-      duration: test.duration || test.time,
-      error: test.error || test.err,
-      file: test.file || test.fullFile,
-      artifactName
-    })))
-  }
-
-  return tests
-}
-
-function parsePlaywrightResults(data, tests, artifactName) {
-  const traverse = (suites) => {
-    for (const suite of suites) {
-      if (suite.tests) {
-        for (const test of suite.tests) {
-          tests.push({
-            name: test.title,
-            status: test.outcome,
-            duration: test.results?.[0]?.duration,
-            error: test.results?.[0]?.error?.message,
-            file: suite.file,
-            suite: suite.title,
-            artifactName
-          })
-        }
-      }
-      if (suite.suites) {
-        traverse(suite.suites)
-      }
-    }
-  }
-  traverse(data.suites)
-}
-
-function parseJestResults(data, tests, artifactName) {
-  for (const testResult of data.testResults) {
-    for (const assertionResult of testResult.assertionResults) {
-      tests.push({
-        name: assertionResult.title,
-        status: assertionResult.status,
-        duration: assertionResult.duration,
-        error: assertionResult.failureMessages?.[0],
-        file: testResult.name,
-        artifactName
-      })
-    }
-  }
+  testData.artifactName = artifactName
+  return testData
 }
 
 module.exports = {
