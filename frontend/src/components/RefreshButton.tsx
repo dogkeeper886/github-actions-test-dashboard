@@ -11,7 +11,7 @@ export function RefreshButton() {
 
   const refreshMutation = useMutation({
     mutationFn: workflowsApi.refreshData,
-    onSuccess: (data) => {
+    onSuccess: () => {
       // Invalidate all queries to refetch fresh data
       queryClient.invalidateQueries({ queryKey: ['workflows'] })
       queryClient.invalidateQueries({ queryKey: ['workflow-runs'] })

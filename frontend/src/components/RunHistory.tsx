@@ -103,7 +103,7 @@ function RunCard({ run, onClick }: RunCardProps) {
               </div>
               {run.fileSummary.fileTypes.images > 0 && (
                 <div className="flex items-center space-x-1">
-                  <Image className="h-4 w-4" />
+                  <Image className="h-4 w-4" aria-label="Images" />
                   <span>{run.fileSummary.fileTypes.images}</span>
                 </div>
               )}
@@ -210,7 +210,7 @@ export function RunHistory({ workflowId, workflowName, onBack, onRunSelect }: Ru
   }
 
   const runs = data?.runs || []
-  const pagination = data?.pagination
+  const pagination = data?.pagination as { page: number; limit: number; total: number; totalPages: number } | undefined
 
   // Sort runs: failed first, then by run number descending
   const sortedRuns = [...runs].sort((a, b) => {

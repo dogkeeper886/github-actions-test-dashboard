@@ -18,7 +18,7 @@ class ApiClient {
     return response.json()
   }
 
-  async post<T>(endpoint: string, data?: any): Promise<T> {
+  async post<T>(endpoint: string, data?: unknown): Promise<T> {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'POST',
       headers: {
@@ -116,7 +116,7 @@ export interface RunDetails {
     json: Array<{
       id: string
       originalPath: string
-      content: any
+      content: unknown
       size: number
       artifactName: string
     }>
@@ -150,7 +150,7 @@ export const workflowsApi = {
   getWorkflows: (): Promise<{ workflows: Workflow[] }> =>
     apiClient.get('/workflows'),
     
-  getWorkflowRuns: (workflowId: number, params?: { page?: number; limit?: number; status?: string }): Promise<{ runs: WorkflowRun[]; pagination: any }> => {
+  getWorkflowRuns: (workflowId: number, params?: { page?: number; limit?: number; status?: string }): Promise<{ runs: WorkflowRun[]; pagination: unknown }> => {
     const searchParams = new URLSearchParams()
     if (params?.page) searchParams.set('page', params.page.toString())
     if (params?.limit) searchParams.set('limit', params.limit.toString())
@@ -163,7 +163,7 @@ export const workflowsApi = {
   getRunDetails: (runId: string): Promise<RunDetails> =>
     apiClient.get(`/runs/${runId}/files`),
     
-  refreshData: (): Promise<any> =>
+  refreshData: (): Promise<unknown> =>
     apiClient.post('/refresh/collect'),
     
   getRefreshStatus: (): Promise<RefreshStatus> =>

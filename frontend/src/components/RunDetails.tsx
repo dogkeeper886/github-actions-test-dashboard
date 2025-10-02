@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { workflowsApi, type RunDetails as RunDetailsType } from '@/lib/api'
+import { workflowsApi } from '@/lib/api'
 import { CheckCircle, XCircle, Clock, AlertCircle, ArrowLeft, FileText, Image, Code, Archive, Download, Eye } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { useState } from 'react'
@@ -12,7 +12,7 @@ interface RunDetailsProps {
 }
 
 export function RunDetails({ runId, onBack }: RunDetailsProps) {
-  const [selectedFile, setSelectedFile] = useState<any>(null)
+  const [selectedFile, setSelectedFile] = useState<{ id: string; originalPath: string; size: number; artifactName: string; content?: unknown; url?: string } | null>(null)
   
   const { data, isLoading, error } = useQuery({
     queryKey: ['run-details', runId],
@@ -112,8 +112,8 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
 
   const FileSection = ({ title, icon: Icon, files: sectionFiles, type }: { 
     title: string
-    icon: any
-    files: any[]
+    icon: React.ComponentType<{ className?: string }>
+    files: Array<{ id: string; originalPath: string; size: number; artifactName: string; content?: unknown; url?: string }>
     type: string 
   }) => {
     if (sectionFiles.length === 0) return null
@@ -144,7 +144,7 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
                 </div>
                 
                 <div className="flex items-center space-x-2">
-                  {(type === 'json' || type === 'text') && file.content && (
+                  {(type === 'json' || type === 'text') && file.content !== undefined && (
                     <button
                       onClick={() => setSelectedFile(file)}
                       className="flex items-center space-x-1 px-2 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded"
@@ -159,6 +159,7 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center space-x-1 px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded"
+                      aria-label={`Download ${file.originalPath}`}
                     >
                       <Download className="h-4 w-4" />
                       <span>Download</span>
@@ -219,7 +220,7 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
                 <span>{summary.totalFiles} total</span>
               </div>
               <div className="flex items-center space-x-2">
-                <Image className="h-4 w-4 text-blue-500" />
+                <Image className="h-4 w-4 text-blue-500" aria-label="Images" />
                 <span>{summary.fileTypes.images} images</span>
               </div>
               <div className="flex items-center space-x-2">

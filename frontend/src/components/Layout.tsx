@@ -1,7 +1,7 @@
 'use client'
 
 import { ReactNode } from 'react'
-import { Activity, RefreshCw, Clock, CheckCircle, XCircle } from 'lucide-react'
+import { Activity, Clock, CheckCircle, XCircle } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { workflowsApi } from '@/lib/api'
 
