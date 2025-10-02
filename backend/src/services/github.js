@@ -195,5 +195,7 @@ module.exports = {
   getWorkflowRuns,
   getWorkflowRunJobs,
   getWorkflowRunArtifacts,
+  downloadArtifact,
+  extractArtifact,
   processTestResults
 }

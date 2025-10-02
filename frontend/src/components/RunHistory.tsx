@@ -212,18 +212,8 @@ export function RunHistory({ workflowId, workflowName, onBack, onRunSelect }: Ru
   const runs = data?.runs || []
   const pagination = data?.pagination as { page: number; limit: number; total: number; totalPages: number } | undefined
 
-  // Sort runs: failed first, then by run number descending
-  const sortedRuns = [...runs].sort((a, b) => {
-    // Failed runs first
-    const aFailed = a.conclusion === 'failure'
-    const bFailed = b.conclusion === 'failure'
-    
-    if (aFailed && !bFailed) return -1
-    if (!aFailed && bFailed) return 1
-    
-    // Then by run number descending (newest first)
-    return b.runNumber - a.runNumber
-  })
+  // Runs are already sorted by the backend (latest first)
+  const sortedRuns = runs
 
   return (
     <div className="p-6">

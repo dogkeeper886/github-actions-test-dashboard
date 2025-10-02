@@ -1,5 +1,6 @@
 const WorkflowRun = require('../models/WorkflowRun')
 const ExtractedFile = require('../models/ExtractedFile')
+const Artifact = require('../models/Artifact')
 const { getDatabase } = require('../database/connection')
 const { v4: uuidv4 } = require('uuid')
 
@@ -144,11 +145,26 @@ class DataRecorderService {
       // 1. Record the workflow run
       const storedRun = await this.recordWorkflowRun(runData)
       
-      // 2. Record all extracted files from artifacts
+      // 2. Record artifacts and their extracted files
       let totalFiles = 0
       const filesByArtifact = {}
       
       for (const artifact of artifacts) {
+        // Record the artifact itself
+        await Artifact.create({
+          id: artifact.id,
+          runId: runData.id,
+          name: artifact.name,
+          size_in_bytes: artifact.size || artifact.size_in_bytes,
+          expired: artifact.expired || false,
+          created_at: artifact.created_at,
+          updated_at: artifact.updated_at,
+          expires_at: artifact.expires_at,
+          url: artifact.url,
+          archive_download_url: artifact.archive_download_url
+        })
+        
+        // Record extracted files if any
         if (artifact.extractedFiles && artifact.extractedFiles.length > 0) {
           const storedFiles = await this.recordExtractedFiles(
             runData.id,
