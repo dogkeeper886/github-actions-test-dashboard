@@ -80,13 +80,63 @@ router.post('/', async (req, res) => {
   }
 })
 
-// Get refresh status/history (future enhancement)
+// Get data collection status
 router.get('/status', async (req, res) => {
-  res.json({
-    status: 'ready',
-    lastRefresh: null, // TODO: Store in database
-    nextAutoRefresh: null // TODO: Implement periodic refresh
-  })
+  try {
+    const dataCollector = req.app.locals.dataCollector
+    
+    if (!dataCollector) {
+      return res.json({
+        status: 'not_initialized',
+        message: 'Data collector not available'
+      })
+    }
+
+    const status = dataCollector.getStatus()
+    
+    // Get last sync timestamp
+    const lastSync = await dataCollector.getLastSyncTimestamp()
+    
+    res.json({
+      status: status.isRunning ? 'running' : 'stopped',
+      pollInterval: status.pollInterval,
+      nextPollIn: status.nextPollIn,
+      lastSync: lastSync ? new Date(lastSync).toISOString() : null,
+      isRunning: status.isRunning
+    })
+  } catch (error) {
+    console.error('Error getting collector status:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Force immediate collection
+router.post('/collect', async (req, res) => {
+  try {
+    const dataCollector = req.app.locals.dataCollector
+    
+    if (!dataCollector) {
+      return res.status(503).json({
+        success: false,
+        error: 'Data collector not available'
+      })
+    }
+
+    console.log('🔄 Force collection triggered via API')
+    const result = await dataCollector.forceCollection()
+    
+    res.json({
+      success: true,
+      message: 'Force collection completed',
+      result
+    })
+  } catch (error) {
+    console.error('Force collection failed:', error)
+    res.status(500).json({
+      success: false,
+      error: error.message
+    })
+  }
 })
 
 module.exports = router
