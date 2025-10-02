@@ -225,7 +225,20 @@ Serve any extracted file (images, logs, etc.)
 
 ## Implementation Plan
 
-### Step 1: Add Database Layer
+Based on analysis of current backend vs PRD requirements, here's what we need to implement:
+
+### Current Status ✅
+- GitHub API integration working
+- Artifact download and extraction working  
+- Basic file serving working (screenshots)
+- Docker setup working
+- 17 screenshots successfully processed in testing
+
+### What We Need to Add
+
+### Phase 1: Add Database Layer (Priority 1)
+**Goal:** Enable persistent storage and historical data
+
 ```javascript
 // backend/src/models/database.js
 const sqlite3 = require('sqlite3')
@@ -237,7 +250,7 @@ async function initDatabase() {
     driver: sqlite3.Database
   })
   
-  // Create tables
+  // Create tables matching our discovered data structure
   await db.exec(`
     CREATE TABLE IF NOT EXISTS workflow_runs (
       id TEXT PRIMARY KEY,
@@ -247,91 +260,221 @@ async function initDatabase() {
       conclusion TEXT,
       created_at TEXT,
       updated_at TEXT,
+      started_at TEXT,
+      completed_at TEXT,
       duration INTEGER,
       commit_sha TEXT,
       commit_message TEXT,
       commit_author TEXT,
-      branch TEXT,
-      event TEXT
-    )
+      head_branch TEXT,
+      event TEXT,
+      run_number INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS artifacts (
+      id TEXT PRIMARY KEY,
+      run_id TEXT,
+      name TEXT,
+      size INTEGER,
+      expired BOOLEAN,
+      created_at TEXT,
+      FOREIGN KEY (run_id) REFERENCES workflow_runs(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS extracted_files (
+      id TEXT PRIMARY KEY,
+      run_id TEXT,
+      artifact_id TEXT,
+      artifact_name TEXT,
+      original_path TEXT,
+      file_type TEXT, -- image, json, text, binary
+      file_size INTEGER,
+      stored_filename TEXT,
+      stored_url TEXT,
+      content TEXT, -- for text/json files
+      extracted_at TEXT,
+      FOREIGN KEY (run_id) REFERENCES workflow_runs(id),
+      FOREIGN KEY (artifact_id) REFERENCES artifacts(id)
+    );
   `)
-  
-  // ... other tables
   
   return db
 }
 ```
 
-### Step 2: Enhance Data Collection
+### Phase 2: Enhance Data Recording (Priority 1)
+**Goal:** Store everything we extract for historical access
+
 ```javascript
 // backend/src/services/dataRecorder.js
 async function recordWorkflowRun(runData) {
-  // Store run metadata in database
+  // Store enhanced run metadata from GitHub API
   await db.run(`
     INSERT OR REPLACE INTO workflow_runs 
-    (id, workflow_id, workflow_name, status, conclusion, ...)
-    VALUES (?, ?, ?, ?, ?, ...)
-  `, [runData.id, runData.workflow_id, ...])
+    (id, workflow_id, workflow_name, status, conclusion, created_at, 
+     updated_at, started_at, completed_at, duration, commit_sha, 
+     commit_message, commit_author, head_branch, event, run_number)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `, [
+    runData.id, runData.workflow_id, runData.name, runData.status,
+    runData.conclusion, runData.created_at, runData.updated_at,
+    runData.run_started_at, runData.updated_at, 
+    calculateDuration(runData), runData.head_sha, 
+    runData.display_title, runData.triggering_actor?.login,
+    runData.head_branch, runData.event, runData.run_number
+  ])
 }
 
 async function recordExtractedFiles(runId, artifactId, artifactName, files) {
   for (const file of files) {
     await db.run(`
-      INSERT INTO extracted_files 
-      (id, run_id, artifact_id, artifact_name, original_path, file_type, ...)
-      VALUES (?, ?, ?, ?, ?, ?, ...)
-    `, [generateId(), runId, artifactId, artifactName, ...])
+      INSERT OR REPLACE INTO extracted_files 
+      (id, run_id, artifact_id, artifact_name, original_path, file_type,
+       file_size, stored_filename, stored_url, content, extracted_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      generateId(), runId, artifactId, artifactName, file.originalPath,
+      file.type, file.size, file.storedFilename, file.url, 
+      file.content, new Date().toISOString()
+    ])
   }
 }
 ```
 
-### Step 3: Enhance Existing Functions
+### Phase 3: Enhance File Processing (Priority 2)
+**Goal:** Better categorization and content extraction
+
 ```javascript
-// Modify processTestResults to record everything
-async function processTestResults(runId) {
-  const artifacts = await getWorkflowRunArtifacts(runId)
+// Enhance existing processArtifactFile functions
+async function processArtifactFile(filePath, runId, artifactName) {
+  const fileName = path.basename(filePath)
+  const ext = path.extname(fileName).toLowerCase()
+  const stats = await fs.stat(filePath)
   
-  // Record artifacts
-  for (const artifact of artifacts) {
-    await recordArtifact(runId, artifact)
+  const baseFile = {
+    originalPath: filePath,
+    size: stats.size,
+    artifactName,
+    extractedAt: new Date().toISOString()
+  }
+
+  // Enhanced image processing
+  if (['.png', '.jpg', '.jpeg', '.gif', '.webp'].includes(ext)) {
+    return await processImageFile(filePath, runId, baseFile)
   }
   
-  const results = { runId, files: { images: [], json: [], text: [] } }
-  
-  for (const artifact of artifacts) {
-    if (artifact.expired) continue
-    
-    const files = await extractAndProcessArtifact(artifact, runId)
-    
-    // Record all extracted files
-    await recordExtractedFiles(runId, artifact.id, artifact.name, files)
-    
-    // Categorize by type
-    files.forEach(file => {
-      if (file.type === 'image') results.files.images.push(file)
-      else if (file.type === 'json') results.files.json.push(file)  
-      else if (file.type === 'text') results.files.text.push(file)
-    })
+  // Enhanced JSON processing
+  if (ext === '.json') {
+    return await processJsonFile(filePath, baseFile)
   }
   
-  return results
+  // Enhanced text processing  
+  if (['.log', '.txt', '.md', '.xml', '.csv'].includes(ext)) {
+    return await processTextFile(filePath, baseFile)
+  }
+  
+  // Binary files - store but don't process content
+  return await processBinaryFile(filePath, runId, baseFile)
 }
 ```
+
+### Phase 4: Enhanced API Endpoints (Priority 2)
+**Goal:** Match PRD requirements for UI
+
+```javascript
+// Enhanced endpoints
+GET /api/workflows
+// Add latest run status, success rates
+
+GET /api/workflows/:id/runs?page=1&limit=20&status=failed
+// Add pagination, filtering, enhanced metadata
+
+GET /api/runs/:runId/files
+// Return categorized files instead of test-specific structure
+{
+  run: { /* enhanced run metadata */ },
+  summary: {
+    totalArtifacts: 1,
+    totalFiles: 25,
+    fileTypes: { images: 17, json: 3, text: 5 }
+  },
+  files: {
+    images: [{ id, originalPath, storedFilename, url, size, artifactName }],
+    json: [{ id, originalPath, content, size, artifactName }],
+    text: [{ id, originalPath, content, size, artifactName }]
+  }
+}
+
+GET /api/files/:fileId
+// Serve any extracted file by database ID
+
+GET /api/search?q=login&type=files
+// Search across all extracted files
+```
+
+### Phase 5: Background Data Collection (Priority 3)
+**Goal:** Automatic data collection as per PRD
+
+```javascript
+// backend/src/services/collector.js
+async function collectWorkflowData() {
+  const workflows = await getWorkflows()
+  
+  for (const workflow of workflows) {
+    const runs = await getWorkflowRuns(workflow.id, { per_page: 10 })
+    
+    for (const run of runs.workflow_runs) {
+      // Check if we already have this run
+      const existing = await db.get('SELECT id FROM workflow_runs WHERE id = ?', run.id)
+      if (!existing) {
+        await recordWorkflowRun(run)
+        await processTestResults(run.id) // This will record files
+      }
+    }
+  }
+}
+
+// Run every 5 minutes as per PRD
+setInterval(collectWorkflowData, 5 * 60 * 1000)
+```
+
+## Implementation Priority
+
+### Phase 1 (Essential - 2-3 days)
+- ✅ **Database layer** - Enable persistence and historical data
+- ✅ **Enhanced data recording** - Store all extracted information
+- ✅ **Basic file categorization** - image/json/text/binary
+
+### Phase 2 (Important - 1-2 days)  
+- ✅ **Enhanced file processing** - Better content extraction
+- ✅ **Updated API endpoints** - Match PRD requirements
+- ✅ **File serving by ID** - Database-backed file access
+
+### Phase 3 (Nice to have - 1 day)
+- ✅ **Background collection** - Automatic data gathering
+- ✅ **Search functionality** - Find files across runs
+- ✅ **Analytics endpoints** - Success rates, trends
 
 ## Benefits of This Approach
 
-1. **Framework Agnostic** - Works with any test tool
-2. **Simple** - Just record what we observe
-3. **Extensible** - Easy to add interpretation later
+1. **Framework Agnostic** - Works with any test tool or workflow
+2. **Simple** - Just record what we observe, no assumptions
+3. **Extensible** - Easy to add interpretation later without breaking existing functionality
 4. **CLAUDE.md Compliant** - No assumptions or over-engineering
-5. **Debuggable** - Can see exactly what was produced
+5. **Debuggable** - Can see exactly what was produced by any workflow
+6. **Incremental** - Enhance existing working backend, don't rewrite
+7. **Data-Driven** - Based on actual analysis of what GitHub Actions provides
 
-## What Frontend Gets
+## What Frontend Will Get
 
-- List of workflow runs with basic metadata
-- All files extracted from artifacts, categorized by type
-- Direct access to any file (images, logs, JSON data)
-- Simple counts and summaries
-- No framework-specific interpretation
+After implementation, the frontend will have access to:
 
-The frontend can then decide how to display and interpret the data based on what it finds!
+- **Enhanced workflow list** with latest run status and success rates
+- **Paginated run history** with full metadata (commit, author, timing)
+- **Categorized file access** - all files organized by type (image/json/text)
+- **File content** - JSON parsed, text content available, images served
+- **Historical data** - Track patterns and changes over time
+- **Search capabilities** - Find specific files or content across all runs
+- **Direct file access** - No more artifact downloads needed
+
+The frontend can then build rich UI components for file galleries, content viewers, and analytics dashboards based on this comprehensive data!

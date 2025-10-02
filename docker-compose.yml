@@ -1,6 +1,22 @@
 version: '3.8'
 
 services:
+  database:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=github_actions_dashboard
+      - POSTGRES_USER=dashboard_user
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-dashboard_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dashboard_user -d github_actions_dashboard"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: ./backend
@@ -15,10 +31,15 @@ services:
       - GITHUB_REPO=${GITHUB_REPO}
       - SCREENSHOT_STORAGE_PATH=/app/data/screenshots
       - POLL_INTERVAL_MINUTES=${POLL_INTERVAL_MINUTES:-5}
+      - DATABASE_URL=postgresql://dashboard_user:${DB_PASSWORD:-dashboard_password}@database:5432/github_actions_dashboard
     volumes:
       - screenshot_data:/app/data/screenshots
       - temp_data:/app/temp
+    depends_on:
+      database:
+        condition: service_healthy
 
 volumes:
+  postgres_data:
   screenshot_data:
   temp_data:
