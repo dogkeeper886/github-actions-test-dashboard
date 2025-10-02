@@ -11,16 +11,7 @@ const screenshotPath = process.env.SCREENSHOT_STORAGE_PATH || './data/screenshot
 
 async function getWorkflows() {
   const { data } = await octokit.rest.actions.listRepoWorkflows({ owner, repo })
-  
-  return data.workflows.map(workflow => ({
-    id: workflow.id,
-    name: workflow.name,
-    path: workflow.path,
-    state: workflow.state,
-    created_at: workflow.created_at,
-    updated_at: workflow.updated_at,
-    url: workflow.html_url
-  }))
+  return data.workflows
 }
 
 async function getWorkflowRuns(workflowId, options = {}) {
@@ -28,36 +19,13 @@ async function getWorkflowRuns(workflowId, options = {}) {
     owner,
     repo,
     workflow_id: workflowId,
-    per_page: options.per_page || 30,
-    page: options.page || 1
+    per_page: 30,
+    page: 1,
+    ...options
   }
-
-  if (options.status) params.status = options.status
-  if (options.branch) params.branch = options.branch
 
   const { data } = await octokit.rest.actions.listWorkflowRuns(params)
-  
-  return {
-    total_count: data.total_count,
-    runs: data.workflow_runs.map(run => ({
-      id: run.id,
-      name: run.name,
-      head_branch: run.head_branch,
-      head_sha: run.head_sha,
-      status: run.status,
-      conclusion: run.conclusion,
-      created_at: run.created_at,
-      updated_at: run.updated_at,
-      run_number: run.run_number,
-      event: run.event,
-      actor: run.actor ? {
-        login: run.actor.login,
-        avatar_url: run.actor.avatar_url
-      } : null,
-      run_started_at: run.run_started_at,
-      url: run.html_url
-    }))
-  }
+  return data
 }
 
 async function getWorkflowRunJobs(runId) {
@@ -66,23 +34,7 @@ async function getWorkflowRunJobs(runId) {
     repo,
     run_id: runId
   })
-
-  return data.jobs.map(job => ({
-    id: job.id,
-    name: job.name,
-    status: job.status,
-    conclusion: job.conclusion,
-    started_at: job.started_at,
-    completed_at: job.completed_at,
-    steps: job.steps.map(step => ({
-      name: step.name,
-      status: step.status,
-      conclusion: step.conclusion,
-      number: step.number,
-      started_at: step.started_at,
-      completed_at: step.completed_at
-    }))
-  }))
+  return data.jobs
 }
 
 async function getWorkflowRunArtifacts(runId) {
@@ -91,16 +43,7 @@ async function getWorkflowRunArtifacts(runId) {
     repo,
     run_id: runId
   })
-
-  return data.artifacts.map(artifact => ({
-    id: artifact.id,
-    name: artifact.name,
-    size_in_bytes: artifact.size_in_bytes,
-    created_at: artifact.created_at,
-    expired: artifact.expired,
-    expires_at: artifact.expires_at,
-    archive_download_url: artifact.archive_download_url
-  }))
+  return data.artifacts
 }
 
 async function downloadArtifact(artifactId, downloadPath) {
@@ -161,23 +104,60 @@ async function extractArtifact(zipPath, extractPath) {
   })
 }
 
+function isTestArtifact(artifact) {
+  return artifact.name.toLowerCase().includes('test') ||
+         artifact.name.toLowerCase().includes('results') ||
+         artifact.name.toLowerCase().includes('report') ||
+         artifact.name.toLowerCase().includes('playwright') ||
+         artifact.name.toLowerCase().includes('cypress')
+}
+
+async function processArtifactFile(filePath, runId, artifactName) {
+  const fileName = path.basename(filePath)
+  const ext = path.extname(fileName).toLowerCase()
+
+  if (ext === '.json' && fileName.includes('results')) {
+    const testData = await fs.readJson(filePath)
+    return { type: 'tests', data: parseTestResults(testData, artifactName) }
+  }
+  
+  if (['.png', '.jpg', '.jpeg'].includes(ext)) {
+    const screenshotName = `${runId}_${Date.now()}_${fileName}`
+    const screenshotStorePath = path.join(screenshotPath, screenshotName)
+    await fs.ensureDir(screenshotPath)
+    await fs.copy(filePath, screenshotStorePath)
+    
+    return {
+      type: 'screenshots',
+      data: {
+        originalName: fileName,
+        storedName: screenshotName,
+        path: screenshotStorePath,
+        artifactName
+      }
+    }
+  }
+  
+  if (ext === '.log' || ext === '.txt') {
+    const logContent = await fs.readFile(filePath, 'utf8')
+    return {
+      type: 'logs',
+      data: {
+        name: fileName,
+        content: logContent,
+        artifactName
+      }
+    }
+  }
+  
+  return null
+}
+
 async function processTestResults(runId) {
   const artifacts = await getWorkflowRunArtifacts(runId)
-  
-  const testArtifacts = artifacts.filter(artifact => 
-    artifact.name.toLowerCase().includes('test') ||
-    artifact.name.toLowerCase().includes('results') ||
-    artifact.name.toLowerCase().includes('report') ||
-    artifact.name.toLowerCase().includes('playwright') ||
-    artifact.name.toLowerCase().includes('cypress')
-  )
+  const testArtifacts = artifacts.filter(isTestArtifact)
 
-  const results = {
-    runId,
-    tests: [],
-    screenshots: [],
-    logs: []
-  }
+  const results = { runId, tests: [], screenshots: [], logs: [] }
 
   for (const artifact of testArtifacts) {
     if (artifact.expired) continue
@@ -189,31 +169,13 @@ async function processTestResults(runId) {
     const extractedFiles = await extractArtifact(downloadPath, extractPath)
 
     for (const filePath of extractedFiles) {
-      const fileName = path.basename(filePath)
-      const ext = path.extname(fileName).toLowerCase()
-
-      if (ext === '.json' && fileName.includes('results')) {
-        const testData = await fs.readJson(filePath)
-        results.tests.push(...parseTestResults(testData, artifact.name))
-      } else if (['.png', '.jpg', '.jpeg'].includes(ext)) {
-        const screenshotName = `${runId}_${Date.now()}_${fileName}`
-        const screenshotStorePath = path.join(screenshotPath, screenshotName)
-        await fs.ensureDir(screenshotPath)
-        await fs.copy(filePath, screenshotStorePath)
-        
-        results.screenshots.push({
-          originalName: fileName,
-          storedName: screenshotName,
-          path: screenshotStorePath,
-          artifactName: artifact.name
-        })
-      } else if (ext === '.log' || ext === '.txt') {
-        const logContent = await fs.readFile(filePath, 'utf8')
-        results.logs.push({
-          name: fileName,
-          content: logContent,
-          artifactName: artifact.name
-        })
+      const processed = await processArtifactFile(filePath, runId, artifact.name)
+      if (processed) {
+        if (processed.type === 'tests') {
+          results.tests.push(...processed.data)
+        } else {
+          results[processed.type].push(processed.data)
+        }
       }
     }
 

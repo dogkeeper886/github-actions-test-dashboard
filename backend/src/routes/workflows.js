@@ -17,14 +17,7 @@ router.get('/:workflowId', async (req, res) => {
 
 // Get workflow runs
 router.get('/:workflowId/runs', async (req, res) => {
-  const options = {
-    per_page: parseInt(req.query.per_page) || 30,
-    page: parseInt(req.query.page) || 1,
-    status: req.query.status,
-    branch: req.query.branch
-  }
-  
-  const runs = await getWorkflowRuns(req.params.workflowId, options)
+  const runs = await getWorkflowRuns(req.params.workflowId, req.query)
   res.json(runs)
 })
 
