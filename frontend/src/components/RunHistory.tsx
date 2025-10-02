@@ -144,7 +144,7 @@ export function RunHistory({ workflowId, workflowName, onBack, onRunSelect }: Ru
   const [page, setPage] = useState(1)
   const [statusFilter, setStatusFilter] = useState<string>('all')
   
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, isFetching, error } = useQuery({
     queryKey: ['workflow-runs', workflowId, page, statusFilter],
     queryFn: () => workflowsApi.getWorkflowRuns(workflowId, {
       page,
@@ -213,7 +213,14 @@ export function RunHistory({ workflowId, workflowName, onBack, onRunSelect }: Ru
   const pagination = data?.pagination as { page: number; limit: number; total: number; totalPages: number } | undefined
 
   return (
-    <div className="p-6">
+    <div className="p-6 relative">
+      {isFetching && !isLoading && (
+        <div className="absolute top-4 right-4 flex items-center space-x-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 z-10">
+          <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+          <span className="text-sm text-blue-700">Updating...</span>
+        </div>
+      )}
+      
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
           <button

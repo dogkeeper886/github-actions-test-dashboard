@@ -20,6 +20,12 @@ export function RefreshButton() {
       
       setLastRefresh(new Date())
     },
+    onError: (error: Error & { response?: { status: number } }) => {
+      // Check if it's an "in progress" error
+      if (error?.response?.status === 409) {
+        console.log('Refresh already in progress')
+      }
+    }
   })
 
   const handleRefresh = () => {
@@ -58,7 +64,11 @@ export function RefreshButton() {
       {refreshMutation.isError && (
         <div className="flex items-center space-x-1 text-red-600 text-sm">
           <XCircle className="h-4 w-4" />
-          <span>Failed</span>
+          <span>
+            {(refreshMutation.error as Error & { response?: { status: number } })?.response?.status === 409 
+              ? 'Already refreshing...' 
+              : 'Failed'}
+          </span>
         </div>
       )}
 

@@ -60,7 +60,7 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
   const [expandedJobs, setExpandedJobs] = useState<Set<number>>(new Set())
   const [expandedLogs, setExpandedLogs] = useState<Set<number>>(new Set())
   
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, isFetching, error } = useQuery({
     queryKey: ['run-details', runId],
     queryFn: () => workflowsApi.getRunDetails(runId),
   })
@@ -213,7 +213,14 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
 
 
   return (
-    <div className="p-6">
+    <div className="p-6 relative">
+      {isFetching && !isLoading && (
+        <div className="absolute top-4 right-4 flex items-center space-x-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 z-10">
+          <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+          <span className="text-sm text-blue-700">Updating...</span>
+        </div>
+      )}
+      
       <div className="flex items-center space-x-3 mb-6">
         <button
           onClick={onBack}

@@ -97,9 +97,7 @@ class WorkflowProcessorService {
       await fs.remove(extractPath)
 
       return {
-        id: artifact.id,
-        name: artifact.name,
-        size: artifact.size,
+        ...artifact,
         extractedFiles: processedFiles
       }
 
