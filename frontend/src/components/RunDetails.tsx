@@ -1,8 +1,8 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { workflowsApi } from '@/lib/api'
-import { CheckCircle, XCircle, Clock, AlertCircle, ArrowLeft, FileText, Image, Code, Archive, Download, Eye } from 'lucide-react'
+import { workflowsApi, type Job } from '@/lib/api'
+import { CheckCircle, XCircle, Clock, AlertCircle, ArrowLeft, FileText, Image, Code, Archive, Download, Eye, ChevronDown, ChevronRight, Terminal } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { useState } from 'react'
 
@@ -13,10 +13,23 @@ interface RunDetailsProps {
 
 export function RunDetails({ runId, onBack }: RunDetailsProps) {
   const [selectedFile, setSelectedFile] = useState<{ id: string; originalPath: string; size: number; artifactName: string; content?: unknown; url?: string } | null>(null)
+  const [expandedJobs, setExpandedJobs] = useState<Set<number>>(new Set())
+  const [selectedJobForLogs, setSelectedJobForLogs] = useState<number | null>(null)
   
   const { data, isLoading, error } = useQuery({
     queryKey: ['run-details', runId],
     queryFn: () => workflowsApi.getRunDetails(runId),
+  })
+
+  const { data: jobs, isLoading: jobsLoading } = useQuery({
+    queryKey: ['run-jobs', runId],
+    queryFn: () => workflowsApi.getRunJobs(runId),
+  })
+
+  const { data: logs } = useQuery({
+    queryKey: ['job-logs', runId, selectedJobForLogs],
+    queryFn: () => workflowsApi.getJobLogs(runId, selectedJobForLogs!),
+    enabled: selectedJobForLogs !== null,
   })
 
   if (isLoading) {
@@ -108,6 +121,33 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
     const sizes = ['B', 'KB', 'MB', 'GB']
     const i = Math.floor(Math.log(bytes) / Math.log(k))
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+  }
+
+  const toggleJobExpanded = (jobId: number) => {
+    const newExpanded = new Set(expandedJobs)
+    if (newExpanded.has(jobId)) {
+      newExpanded.delete(jobId)
+    } else {
+      newExpanded.add(jobId)
+    }
+    setExpandedJobs(newExpanded)
+  }
+
+  const getStepStatusIcon = (status: string, conclusion: string | null) => {
+    if (status === 'in_progress') {
+      return <Clock className="h-4 w-4 text-yellow-500" />
+    }
+    
+    switch (conclusion) {
+      case 'success':
+        return <CheckCircle className="h-4 w-4 text-green-500" />
+      case 'failure':
+        return <XCircle className="h-4 w-4 text-red-500" />
+      case 'skipped':
+        return <AlertCircle className="h-4 w-4 text-gray-400" />
+      default:
+        return <Clock className="h-4 w-4 text-gray-400" />
+    }
   }
 
   const FileSection = ({ title, icon: Icon, files: sectionFiles, type }: { 
@@ -235,6 +275,136 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
           </div>
         </div>
       </div>
+
+      {/* Jobs */}
+      {jobs && jobs.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">
+            Jobs ({jobs.length})
+          </h2>
+          
+          <div className="space-y-3">
+            {jobs.map((job) => {
+              const isExpanded = expandedJobs.has(job.id)
+              const isLogSelected = selectedJobForLogs === job.id
+              
+              return (
+                <div key={job.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                  {/* Job Header */}
+                  <div className="bg-gray-50 p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3 flex-1">
+                        <button
+                          onClick={() => toggleJobExpanded(job.id)}
+                          className="text-gray-600 hover:text-gray-900"
+                        >
+                          {isExpanded ? (
+                            <ChevronDown className="h-5 w-5" />
+                          ) : (
+                            <ChevronRight className="h-5 w-5" />
+                          )}
+                        </button>
+                        
+                        {getStatusIcon(job.status, job.conclusion)}
+                        
+                        <div className="flex-1">
+                          <h3 className="font-medium text-gray-900">{job.name}</h3>
+                          <div className="flex items-center space-x-3 text-sm text-gray-500 mt-1">
+                            <span>{job.status}</span>
+                            {job.conclusion && (
+                              <>
+                                <span>•</span>
+                                <span>{job.conclusion}</span>
+                              </>
+                            )}
+                            {job.started_at && (
+                              <>
+                                <span>•</span>
+                                <span>{formatDistanceToNow(new Date(job.started_at), { addSuffix: true })}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {job.status === 'completed' && (
+                        <button
+                          onClick={() => setSelectedJobForLogs(isLogSelected ? null : job.id)}
+                          className={`flex items-center space-x-2 px-3 py-1.5 text-sm rounded ${
+                            isLogSelected
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                          }`}
+                        >
+                          <Terminal className="h-4 w-4" />
+                          <span>{isLogSelected ? 'Hide Logs' : 'View Logs'}</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Job Steps (when expanded) */}
+                  {isExpanded && job.steps && job.steps.length > 0 && (
+                    <div className="p-4 bg-white border-t border-gray-200">
+                      <h4 className="text-sm font-medium text-gray-700 mb-3">
+                        Steps ({job.steps.length})
+                      </h4>
+                      <div className="space-y-2">
+                        {job.steps.map((step) => (
+                          <div
+                            key={step.id}
+                            className="flex items-start space-x-3 p-2 rounded hover:bg-gray-50"
+                          >
+                            {getStepStatusIcon(step.status, step.conclusion)}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900">{step.name}</p>
+                              <div className="flex items-center space-x-2 text-xs text-gray-500 mt-0.5">
+                                <span>#{step.number}</span>
+                                <span>•</span>
+                                <span>{step.status}</span>
+                                {step.conclusion && (
+                                  <>
+                                    <span>•</span>
+                                    <span>{step.conclusion}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Job Logs Panel */}
+      {selectedJobForLogs && logs && (
+        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <Terminal className="h-5 w-5 text-gray-600" />
+              <h2 className="text-xl font-semibold text-gray-900">
+                Job Logs: {jobs?.find(j => j.id === selectedJobForLogs)?.name}
+              </h2>
+            </div>
+            <button
+              onClick={() => setSelectedJobForLogs(null)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              ✕
+            </button>
+          </div>
+          
+          <div className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto">
+            <pre className="text-xs font-mono whitespace-pre">{logs}</pre>
+          </div>
+        </div>
+      )}
 
       {/* Files */}
       {summary.totalFiles > 0 ? (

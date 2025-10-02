@@ -145,6 +145,30 @@ export interface RefreshStatus {
   isRunning: boolean
 }
 
+export interface JobStep {
+  id: number
+  job_id: number
+  name: string
+  status: string
+  conclusion: string | null
+  number: number
+  started_at: string | null
+  completed_at: string | null
+}
+
+export interface Job {
+  id: number
+  run_id: number
+  name: string
+  status: string
+  conclusion: string | null
+  started_at: string
+  completed_at: string | null
+  url: string
+  html_url: string
+  steps: JobStep[]
+}
+
 // API functions
 export const workflowsApi = {
   getWorkflows: (): Promise<{ workflows: Workflow[] }> =>
@@ -162,6 +186,12 @@ export const workflowsApi = {
     
   getRunDetails: (runId: string): Promise<RunDetails> =>
     apiClient.get(`/runs/${runId}/files`),
+    
+  getRunJobs: (runId: string): Promise<Job[]> =>
+    apiClient.get(`/runs/${runId}/jobs`),
+    
+  getJobLogs: (runId: string, jobId: number): Promise<string> =>
+    apiClient.get(`/runs/${runId}/jobs/${jobId}/logs`),
     
   refreshData: (): Promise<unknown> =>
     apiClient.post('/refresh/collect'),
