@@ -10,34 +10,34 @@
 ## 1. Product Overview
 
 ### 1.1 Purpose
-A self-hosted web dashboard that displays GitHub Actions workflow test results, making it easy to identify test failures, view logs, and see screenshots without navigating through GitHub's native UI.
+A self-hosted web dashboard that displays GitHub Actions workflow results by recording and presenting what actually happens in workflow runs. Framework-agnostic approach that extracts and categorizes all artifacts (images, logs, JSON files) without making assumptions about test frameworks.
 
 ### 1.2 Problem Statement
-- GitHub Actions workflow logs are difficult to navigate
-- Hard to quickly identify which specific tests failed
-- Screenshots are buried in downloadable artifacts
-- No easy way to view historical test trends
-- Time-consuming to debug test failures
+- GitHub Actions workflow artifacts are difficult to access and navigate
+- Screenshots and logs are buried in downloadable zip files
+- No unified view of what was actually produced by workflow runs
+- Time-consuming to download and extract artifacts for debugging
+- No historical view of workflow outputs and patterns
 
 ### 1.3 Goals
-- Instantly show which tests failed and why
-- Display screenshots inline without downloads
-- Provide easy-to-read logs with search and filtering
-- Track test history and trends
-- Reduce test failure investigation time from 5+ minutes to under 1 minute
+- Automatically extract and categorize all workflow artifacts
+- Display images, logs, and data files inline without downloads
+- Provide unified view of what each workflow run produced
+- Record workflow run history and artifact patterns
+- Reduce artifact investigation time from 5+ minutes to under 1 minute
 
 ---
 
 ## 2. Target Users
 
 **Primary:** QA Engineers / Test Automation Engineers
-- Need to quickly debug test failures
-- Want to see screenshots immediately
-- Need to identify flaky tests
+- Need to quickly access workflow artifacts
+- Want to see screenshots and logs immediately
+- Need to understand what workflows actually produced
 
 **Secondary:** Development Team Leads
-- Need to monitor overall test health
-- Want to track success rates over time
+- Need to monitor workflow reliability
+- Want to track workflow output patterns over time
 
 ---
 
@@ -89,94 +89,94 @@ A self-hosted web dashboard that displays GitHub Actions workflow test results, 
 
 ### 3.2 Test Results
 
-#### Feature: Test Results Dashboard
-**What:** Detailed view of all tests in a single workflow run
+#### Feature: Workflow Run Results Dashboard
+**What:** Detailed view of all artifacts and files extracted from a workflow run
 
 **User needs:**
-- Immediately see which tests failed
-- Understand test execution summary
-- Navigate to failed test details quickly
+- Immediately see what the workflow produced
+- Access all extracted files by category
+- Navigate to specific files quickly
 
 **Must have:**
-- Test execution summary: total, passed, failed, skipped, success rate
-- **Failed tests displayed at the top**
-- Each test shows: name, file, duration, failure message
-- Click test to see full details
-- Passed and skipped tests shown below failures
+- Run execution summary: status, duration, commit info
+- **Files categorized by type (images, JSON, text logs)**
+- Each file shows: original path, size, artifact source
+- Click file to view content inline
+- Direct download links for all files
 
 **Nice to have:**
-- Search tests by name
-- Filter by test file or suite
-- Group tests by suite/file
-- Compare with previous run
+- Search files by name or content
+- Filter by file type or artifact
+- Group files by artifact source
+- Compare with previous run outputs
 
 ---
 
-#### Feature: Test Log Viewer
-**What:** View detailed logs for individual tests
+#### Feature: File Content Viewer
+**What:** View content of extracted files (logs, JSON, text files)
 
 **User needs:**
-- Read test logs easily
-- Find errors quickly in large logs
-- Copy or download logs
+- Read file contents easily
+- Navigate large files quickly
+- Copy or download file content
 
 **Must have:**
-- Display test execution logs
-- Highlight error lines and stack traces
-- Line numbers
-- Copy entire log
-- Download log file
+- Display text file content with formatting
+- Show JSON files with proper structure
+- Line numbers for text files
+- Copy entire content
+- Download original files
 
 **Nice to have:**
-- Search within logs
-- Syntax highlighting
-- Auto-scroll to first error
-- Collapse/expand log sections
+- Search within file content
+- Syntax highlighting for different file types
+- Collapsible JSON structure
+- Side-by-side file comparison
 
 ---
 
-#### Feature: Screenshot Gallery
-**What:** Display test failure screenshots inline
+#### Feature: Image Gallery
+**What:** Display all extracted images inline
 
 **User needs:**
-- See what the UI looked like when test failed
-- View screenshots without downloading artifacts
-- Zoom into screenshots for details
+- See all images produced by workflow runs
+- View images without downloading artifacts
+- Zoom into images for details
 
 **Must have:**
-- Display screenshot thumbnails inline with test results
+- Display image thumbnails grouped by artifact
 - Click thumbnail to view full-size
-- Support multiple screenshots per test
-- Download individual screenshots
+- Show image metadata (filename, size, source artifact)
+- Download individual images
 
 **Nice to have:**
 - Lightbox/modal viewer
-- Navigate between screenshots with keyboard
-- Show screenshot metadata (filename, timestamp)
-- Image zoom controls
+- Navigate between images with keyboard
+- Show image timestamps and paths
+- Image zoom and pan controls
 
 ---
 
 ### 3.3 Historical Data & Analytics
 
-#### Feature: Test History
-**What:** Track individual test results over time
+#### Feature: Workflow Output History
+**What:** Track workflow artifacts and outputs over time
 
 **User needs:**
-- See if a test is consistently failing
-- Identify flaky tests
-- Understand test stability trends
+- See what workflows consistently produce
+- Identify changes in workflow outputs
+- Understand workflow behavior patterns
 
 **Must have:**
-- Show test result history across runs
-- Display pass/fail pattern over time
-- Identify tests with intermittent failures
+- Show workflow run history with artifact summaries
+- Display file type patterns over time
+- Track artifact size and count trends
 
 **Nice to have:**
-- Test duration trends
-- Success rate charts
-- "Most frequently failing tests" list
-- Flaky test detection algorithm
+- File content change detection
+- Output pattern analysis
+- "Most common artifacts" list
+- Anomaly detection in workflow outputs
 
 ---
 
@@ -247,11 +247,11 @@ A self-hosted web dashboard that displays GitHub Actions workflow test results, 
 **What:** Collect data from GitHub and store locally
 
 **Must collect:**
-- Workflows information
-- Workflow runs (metadata, status, timing)
-- Test results from artifacts
-- Test logs
-- Screenshots from artifacts
+- Workflow information
+- Workflow runs (metadata, status, timing, commit info)
+- All artifacts produced by runs
+- All files extracted from artifacts (categorized by type)
+- File content for text/JSON files
 
 **Collection frequency:**
 - Poll GitHub API every 5 minutes for new data
@@ -265,15 +265,15 @@ A self-hosted web dashboard that displays GitHub Actions workflow test results, 
 **Must store:**
 - Workflow metadata
 - Run metadata (commit, branch, author, timing, status)
-- Individual test results (name, status, duration, failure message)
-- Test logs
-- Screenshot files and references
+- Artifact information (name, size, expiration)
+- Extracted file records (path, type, size, content)
+- File storage references and URLs
 
 **Storage considerations:**
 - Keep data for at least 90 days
 - Support up to 10,000 workflow runs
-- Support up to 1 million test results
-- Handle screenshot storage (up to 100GB)
+- Support up to 1 million extracted files
+- Handle file storage (images, logs, JSON) up to 100GB
 
 ---
 
@@ -331,16 +331,19 @@ A self-hosted web dashboard that displays GitHub Actions workflow test results, 
 
 ---
 
-### 6.2 Test Framework Support
+### 6.2 Artifact Processing Support
 **Must support:**
-- Playwright test results
-- Cypress test results
-- Screenshots in PNG/JPEG format
+- Any artifact format (framework agnostic)
+- Image files (PNG, JPEG, GIF, WebP)
+- Text files (logs, plain text)
+- JSON files (any structure)
+- Binary files (stored but not processed)
 
 **Nice to have:**
-- JUnit XML format
-- Other test frameworks (Jest, Mocha, pytest)
-- Video recordings
+- XML file processing
+- CSV file processing
+- Video file handling
+- Archive file extraction (nested zips)
 
 ---
 
@@ -351,8 +354,8 @@ A self-hosted web dashboard that displays GitHub Actions workflow test results, 
 
 **Must support:**
 - Docker deployment
-- PostgreSQL database
-- Local file storage for screenshots
+- SQLite database (simple, file-based)
+- Local file storage for extracted artifacts
 
 **Nice to have:**
 - Docker Compose one-command setup
@@ -365,8 +368,8 @@ A self-hosted web dashboard that displays GitHub Actions workflow test results, 
 **Must configure:**
 - GitHub repository (owner/repo)
 - GitHub access token
-- Database connection
-- Storage location for screenshots
+- Database file location
+- Storage location for extracted files
 
 ---
 
@@ -374,18 +377,18 @@ A self-hosted web dashboard that displays GitHub Actions workflow test results, 
 
 ### 8.1 Functionality
 - ✅ All workflow runs are collected and displayed
-- ✅ Failed tests are shown at the top of results
-- ✅ Screenshots are viewable inline without downloads
-- ✅ Logs are searchable and readable
+- ✅ All artifacts are extracted and categorized
+- ✅ Images are viewable inline without downloads
+- ✅ File contents are accessible and readable
 
 ### 8.2 Performance
-- ⏱️ Test failure investigation time: < 1 minute (vs 5+ minutes in GitHub UI)
+- ⏱️ Artifact investigation time: < 1 minute (vs 5+ minutes in GitHub UI)
 - ⏱️ Page load time: < 3 seconds
-- ⏱️ Zero artifact downloads needed for debugging
+- ⏱️ Zero manual artifact downloads needed
 
 ### 8.3 User Satisfaction
-- ✅ Users can identify root cause of failure from dashboard alone (90% of cases)
-- ✅ Users prefer dashboard over GitHub Actions UI
+- ✅ Users can access all workflow outputs from dashboard alone (90% of cases)
+- ✅ Users prefer dashboard over GitHub Actions UI for artifact access
 
 ---
 
@@ -405,5 +408,5 @@ A self-hosted web dashboard that displays GitHub Actions workflow test results, 
 
 ## 10. Open Questions
 
-1. **Test formats:** Should we support formats other than Playwright/Cypress initially?
-2. **Data retention:** How long should we keep historical
+1. **File formats:** What additional file types should we process beyond images/JSON/text?
+2. **Data retention:** How long should we keep historical workflow data and extracted files?

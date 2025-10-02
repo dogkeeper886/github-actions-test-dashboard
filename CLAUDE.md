@@ -8,6 +8,12 @@
 - Delete code rather than comment it out
 - One responsibility per function/class
 
+### General Design Over Specific Cases
+- Design for the general case, not specific implementations
+- Discover what the system actually provides, don't assume
+- Build framework-agnostic solutions that work with any input
+- Record what happens, let interpretation come later
+
 ### Fail Fast, Fail Loud
 - No defensive programming or extensive validation
 - Let the code fail immediately when inputs are invalid
@@ -40,6 +46,8 @@
 - Minimal abstractions
 - Clear, descriptive variable/function names
 - Removal of unnecessary code
+- General solutions that work with any input
+- Code that discovers rather than assumes
 
 ### ❌ Request Changes
 - Over-abstraction (interfaces with single implementations)
@@ -48,6 +56,8 @@
 - Complex logging or debugging infrastructure
 - Different patterns for the same type of problem
 - Code that tries to "be safe" instead of being correct
+- Framework-specific assumptions or hardcoded logic
+- Solutions that only work for specific cases
 
 ## Review Checklist
 
@@ -57,6 +67,8 @@
 4. **Is validation necessary?** Remove checks that duplicate language/framework validation
 5. **Can any code be deleted?** Less code is better code
 6. **Is logging/debugging simple?** No complex debug infrastructure
+7. **Is this general enough?** Does it work with any input, not just specific cases?
+8. **Does it discover or assume?** Prefer code that observes what actually happens
 
 ## Examples
 
@@ -64,6 +76,13 @@
 ```javascript
 function createUser(email, password) {
   return db.users.create({ email, password });
+}
+
+// General approach - works with any file type
+function processFile(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  const content = fs.readFileSync(filePath);
+  return { type: ext, content, size: content.length };
 }
 ```
 
@@ -90,6 +109,17 @@ function createUser(email, password) {
     return { success: false, error: error.message };
   }
 }
+
+// Specific approach - only works for known test frameworks
+function processTestFile(filePath) {
+  if (filePath.includes('playwright')) {
+    return parsePlaywrightResults(filePath);
+  } else if (filePath.includes('cypress')) {
+    return parseCypressResults(filePath);
+  } else {
+    throw new Error('Unknown test framework');
+  }
+}
 ```
 
 ## Remember
@@ -98,3 +128,5 @@ function createUser(email, password) {
 - Trust your tools and dependencies
 - Consistency beats perfection
 - Simple failures are better than complex success handling
+- General solutions beat specific ones
+- Discover what systems provide, don't assume
