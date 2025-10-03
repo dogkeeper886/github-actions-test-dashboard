@@ -72,7 +72,7 @@ class DataCollectorService {
           (r) => r.workflow_id === workflow.id,
         );
         for (const inProgressRun of workflowInProgressRuns) {
-          if (!runs.find((r) => r.id === inProgressRun.id)) {
+          if (!runs.find((r) => r.id == inProgressRun.id)) {
             const freshRunData = await this.workflowProcessor.getRunData(
               inProgressRun.id,
             );
