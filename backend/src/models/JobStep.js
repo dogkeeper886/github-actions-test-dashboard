@@ -29,7 +29,11 @@ class JobStep {
       INSERT INTO job_steps (
         job_id, name, status, conclusion, number, completed_at, log_content
       ) VALUES ${placeholders.join(", ")}
-      ON CONFLICT DO NOTHING
+      ON CONFLICT (job_id, number) DO UPDATE SET
+        status = EXCLUDED.status,
+        conclusion = EXCLUDED.conclusion,
+        completed_at = EXCLUDED.completed_at,
+        log_content = EXCLUDED.log_content
       RETURNING *
     `;
 
