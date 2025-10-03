@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   nginx:
@@ -17,8 +17,6 @@ services:
       dockerfile: Dockerfile
       args:
         - NEXT_PUBLIC_API_URL=/api
-    ports:
-      - "3000:3000"
     depends_on:
       - backend
 
@@ -28,12 +26,14 @@ services:
       - POSTGRES_DB=github_actions_dashboard
       - POSTGRES_USER=dashboard_user
       - POSTGRES_PASSWORD=${DB_PASSWORD:-dashboard_password}
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dashboard_user -d github_actions_dashboard"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U dashboard_user -d github_actions_dashboard",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -42,8 +42,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    ports:
-      - "3001:3001"
     environment:
       - NODE_ENV=production
       - PORT=3001
