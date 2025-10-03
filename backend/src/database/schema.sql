@@ -103,6 +103,13 @@ CREATE TABLE IF NOT EXISTS job_logs (
   FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE
 );
 
+-- Sync status table
+CREATE TABLE IF NOT EXISTS sync_status (
+  id SERIAL PRIMARY KEY,
+  last_sync_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Indexes for better query performance
 CREATE INDEX IF NOT EXISTS idx_workflow_runs_workflow_id ON workflow_runs(workflow_id);
 CREATE INDEX IF NOT EXISTS idx_workflow_runs_created_at ON workflow_runs(created_at DESC);

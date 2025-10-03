@@ -57,7 +57,6 @@ class DataCollectorService {
 
       const WorkflowRun = require("../models/WorkflowRun");
       const inProgressRuns = await WorkflowRun.findAllInProgress();
-      const inProgressRunIds = new Set(inProgressRuns.map((r) => r.id));
 
       for (const workflow of workflows) {
         const options = { per_page: 50 };
@@ -116,23 +115,13 @@ class DataCollectorService {
     const { getDatabase } = require("../database/connection");
     const db = await getDatabase();
 
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS sync_status (
-        id SERIAL PRIMARY KEY,
-        last_sync_at TIMESTAMP WITH TIME ZONE NOT NULL,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-      )
-    `);
-
     const result = await db.query(
       "SELECT last_sync_at FROM sync_status ORDER BY id DESC LIMIT 1",
     );
 
-    if (result.rows.length === 0) {
-      return null;
-    }
-
-    return new Date(result.rows[0].last_sync_at).getTime();
+    return result.rows[0]?.last_sync_at
+      ? new Date(result.rows[0].last_sync_at).getTime()
+      : null;
   }
 
   async updateLastSyncTimestamp() {
