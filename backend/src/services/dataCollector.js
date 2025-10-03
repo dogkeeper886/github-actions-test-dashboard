@@ -55,6 +55,10 @@ class DataCollectorService {
       const workflows = await getWorkflows();
       await this.dataRecorder.recordWorkflows(workflows);
 
+      const WorkflowRun = require("../models/WorkflowRun");
+      const inProgressRuns = await WorkflowRun.findAllInProgress();
+      const inProgressRunIds = new Set(inProgressRuns.map((r) => r.id));
+
       for (const workflow of workflows) {
         const options = { per_page: 50 };
         if (lastSync) {
@@ -62,7 +66,19 @@ class DataCollectorService {
         }
 
         const runsData = await getWorkflowRuns(workflow.id, options);
-        const runs = runsData.workflow_runs || [];
+        let runs = runsData.workflow_runs || [];
+
+        const workflowInProgressRuns = inProgressRuns.filter(
+          (r) => r.workflow_id === workflow.id,
+        );
+        for (const inProgressRun of workflowInProgressRuns) {
+          if (!runs.find((r) => r.id === inProgressRun.id)) {
+            const freshRunData = await this.workflowProcessor.getRunData(
+              inProgressRun.id,
+            );
+            runs.push(freshRunData);
+          }
+        }
 
         if (runs.length === 0) continue;
 
