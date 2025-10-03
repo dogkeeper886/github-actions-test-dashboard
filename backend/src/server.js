@@ -1,68 +1,49 @@
-const express = require('express')
-const cors = require('cors')
-require('dotenv').config()
+const express = require("express");
+const cors = require("cors");
+require("dotenv").config();
 
-const { initDatabase } = require('./database/connection')
-const { runMigrations } = require('./database/migrations')
-const DataCollectorService = require('./services/dataCollector')
+const { initDatabase } = require("./database/connection");
+const { runMigrations } = require("./database/migrations");
+const DataCollectorService = require("./services/dataCollector");
 
-const app = express()
-const PORT = process.env.PORT || 3001
+const app = express();
+const PORT = process.env.PORT || 3001;
 
-// Middleware
-app.use(cors())
-app.use(express.json())
+app.use(cors());
+app.use(express.json());
 
-// Routes
-app.use('/api/workflows', require('./routes/workflows'))
-app.use('/api/runs', require('./routes/runs'))
-app.use('/api/tests', require('./routes/tests'))
-app.use('/api/refresh', require('./routes/refresh'))
-app.use('/api/files', require('./routes/files'))
+app.use("/api/workflows", require("./routes/workflows"));
+app.use("/api/runs", require("./routes/runs"));
+app.use("/api/tests", require("./routes/tests"));
+app.use("/api/refresh", require("./routes/refresh"));
+app.use("/api/files", require("./routes/files"));
 
 async function startServer() {
-  try {
-    // Initialize database connection
-    await initDatabase()
-    
-    // Run database migrations
-    await runMigrations()
-    
-    // Start periodic data collection
-    const dataCollector = new DataCollectorService()
-    dataCollector.start()
-    
-    // Store collector instance for graceful shutdown
-    app.locals.dataCollector = dataCollector
-    
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`)
-      console.log('Database connected and migrations completed')
-      console.log(`Periodic data collection started (${dataCollector.pollInterval}m intervals)`)
-    })
-  } catch (error) {
-    console.error('Failed to start server:', error)
-    process.exit(1)
-  }
+  await initDatabase();
+  await runMigrations();
+
+  const dataCollector = new DataCollectorService();
+  dataCollector.start();
+
+  app.locals.dataCollector = dataCollector;
+
+  app.listen(PORT);
 }
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully')
+process.on("SIGTERM", () => {
   if (app.locals.dataCollector) {
-    app.locals.dataCollector.stop()
+    app.locals.dataCollector.stop();
   }
-  process.exit(0)
-})
+  process.exit(0);
+});
 
-process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully')
+process.on("SIGINT", () => {
   if (app.locals.dataCollector) {
-    app.locals.dataCollector.stop()
+    app.locals.dataCollector.stop();
   }
-  process.exit(0)
-})
+  process.exit(0);
+});
 
-startServer()
+startServer();
 
-module.exports = app
+module.exports = app;
