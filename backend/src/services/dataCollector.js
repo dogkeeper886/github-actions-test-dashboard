@@ -69,7 +69,7 @@ class DataCollectorService {
         let runs = runsData.workflow_runs || [];
 
         const workflowInProgressRuns = inProgressRuns.filter(
-          (r) => r.workflow_id === workflow.id,
+          (r) => r.workflow_id == workflow.id,
         );
         for (const inProgressRun of workflowInProgressRuns) {
           if (!runs.find((r) => r.id == inProgressRun.id)) {
