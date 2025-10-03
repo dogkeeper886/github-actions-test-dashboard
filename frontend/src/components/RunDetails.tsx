@@ -1,95 +1,76 @@
-'use client'
+"use client";
 
-import { useQuery } from '@tanstack/react-query'
-import { workflowsApi } from '@/lib/api'
-import { CheckCircle, XCircle, Clock, AlertCircle, ArrowLeft, FileText, Image, Code, Archive, ChevronDown, ChevronRight, Terminal, Folder } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
-import { useState, useMemo } from 'react'
-import { FileTree } from './FileTree'
-import { FilePreviewModal } from './FilePreviewModal'
-import { buildFileTree, FileNode } from '@/lib/fileTree'
+import { useQuery } from "@tanstack/react-query";
+import { workflowsApi } from "@/lib/api";
+import {
+  CheckCircle,
+  XCircle,
+  Clock,
+  AlertCircle,
+  ArrowLeft,
+  FileText,
+  Image,
+  Code,
+  Archive,
+  ChevronDown,
+  ChevronRight,
+  Folder,
+} from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { useState, useMemo } from "react";
+import { FileTree } from "./FileTree";
+import { FilePreviewModal } from "./FilePreviewModal";
+import { buildFileTree, FileNode } from "@/lib/fileTree";
 
 interface RunDetailsProps {
-  runId: string
-  onBack: () => void
-}
-
-function JobLogsSection({ runId, jobId, isExpanded, onToggle }: {
-  runId: string
-  jobId: number
-  isExpanded: boolean
-  onToggle: () => void
-}) {
-  const { data: logs } = useQuery({
-    queryKey: ['job-logs', runId, jobId],
-    queryFn: () => workflowsApi.getJobLogs(runId, jobId),
-    enabled: isExpanded,
-  })
-
-  return (
-    <div className="border-t border-gray-200 bg-white">
-      <button
-        onClick={onToggle}
-        className="w-full flex items-start space-x-3 p-4 hover:bg-gray-50 text-left"
-      >
-        <Terminal className="h-4 w-4 text-gray-600 mt-0.5" />
-        <div className="flex-1">
-          <p className="text-sm font-medium text-gray-900">View Logs</p>
-          <p className="text-xs text-gray-500 mt-0.5">Complete job output</p>
-        </div>
-        {isExpanded ? (
-          <ChevronDown className="h-4 w-4 text-gray-600 mt-0.5" />
-        ) : (
-          <ChevronRight className="h-4 w-4 text-gray-600 mt-0.5" />
-        )}
-      </button>
-      
-      {isExpanded && logs && (
-        <div className="px-4 pb-4">
-          <div className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto">
-            <pre className="text-xs font-mono whitespace-pre">{logs}</pre>
-          </div>
-        </div>
-      )}
-    </div>
-  )
+  runId: string;
+  onBack: () => void;
 }
 
 export function RunDetails({ runId, onBack }: RunDetailsProps) {
-  const [selectedFile, setSelectedFile] = useState<FileNode | null>(null)
-  const [expandedJobs, setExpandedJobs] = useState<Set<number>>(new Set())
-  const [expandedLogs, setExpandedLogs] = useState<Set<number>>(new Set())
-  
+  const [selectedFile, setSelectedFile] = useState<FileNode | null>(null);
+  const [expandedJobs, setExpandedJobs] = useState<Set<number>>(new Set());
+  const [expandedSteps, setExpandedSteps] = useState<Set<number>>(new Set());
+
   const { data, isLoading, isFetching, error } = useQuery({
-    queryKey: ['run-details', runId],
+    queryKey: ["run-details", runId],
     queryFn: () => workflowsApi.getRunDetails(runId),
-  })
+  });
 
   const { data: jobs } = useQuery({
-    queryKey: ['run-jobs', runId],
+    queryKey: ["run-jobs", runId],
     queryFn: () => workflowsApi.getRunJobs(runId),
-  })
+  });
 
   // Build file tree from all files (must be called before any conditional returns)
   const allFiles = useMemo(() => {
-    if (!data) return []
-    const { files } = data
-    const categorizeFile = (file: typeof files.images[0] | typeof files.json[0] | typeof files.text[0] | typeof files.binary[0]) => {
-      if (files.images.includes(file as typeof files.images[0])) return 'image'
-      if (files.json.includes(file as typeof files.json[0])) return 'json'
-      if (files.text.includes(file as typeof files.text[0])) return 'text'
-      return 'binary'
-    }
+    if (!data) return [];
+    const { files } = data;
+    const categorizeFile = (
+      file:
+        | (typeof files.images)[0]
+        | (typeof files.json)[0]
+        | (typeof files.text)[0]
+        | (typeof files.binary)[0],
+    ) => {
+      if (files.images.includes(file as (typeof files.images)[0]))
+        return "image";
+      if (files.json.includes(file as (typeof files.json)[0])) return "json";
+      if (files.text.includes(file as (typeof files.text)[0])) return "text";
+      return "binary";
+    };
 
-    return [...files.images, ...files.json, ...files.text, ...files.binary].map(file => ({
-      ...file,
-      fileType: categorizeFile(file),
-      content: 'content' in file ? file.content : undefined,
-      url: 'url' in file ? file.url : undefined
-    }))
-  }, [data])
+    return [...files.images, ...files.json, ...files.text, ...files.binary].map(
+      (file) => ({
+        ...file,
+        fileType: categorizeFile(file),
+        content: "content" in file ? file.content : undefined,
+        url: "url" in file ? file.url : undefined,
+      }),
+    );
+  }, [data]);
 
-  const fileTree = useMemo(() => buildFileTree(allFiles), [allFiles])
+  const fileTree = useMemo(() => buildFileTree(allFiles), [allFiles]);
 
   if (isLoading) {
     return (
@@ -103,7 +84,7 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
             <span>Back to runs</span>
           </button>
         </div>
-        
+
         <div className="animate-pulse">
           <div className="h-8 bg-gray-300 rounded w-1/3 mb-4"></div>
           <div className="h-32 bg-gray-300 rounded mb-6"></div>
@@ -114,7 +95,7 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -129,88 +110,89 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
             <span>Back to runs</span>
           </button>
         </div>
-        
+
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <div className="flex items-center space-x-2">
             <XCircle className="h-5 w-5 text-red-500" />
-            <h3 className="text-red-800 font-medium">Failed to load run details</h3>
+            <h3 className="text-red-800 font-medium">
+              Failed to load run details
+            </h3>
           </div>
           <p className="text-red-700 text-sm mt-1">
-            {error instanceof Error ? error.message : 'Unknown error occurred'}
+            {error instanceof Error ? error.message : "Unknown error occurred"}
           </p>
         </div>
       </div>
-    )
+    );
   }
 
-  if (!data) return null
+  if (!data) return null;
 
-  const { run, summary } = data
+  const { run, summary } = data;
 
   const getStatusIcon = (status: string, conclusion: string | null) => {
-    if (status === 'in_progress' || status === 'queued') {
-      return <Clock className="h-6 w-6 text-yellow-500" />
+    if (status === "in_progress" || status === "queued") {
+      return <Clock className="h-6 w-6 text-yellow-500" />;
     }
-    
+
     switch (conclusion) {
-      case 'success':
-        return <CheckCircle className="h-6 w-6 text-green-500" />
-      case 'failure':
-        return <XCircle className="h-6 w-6 text-red-500" />
-      case 'cancelled':
-        return <AlertCircle className="h-6 w-6 text-gray-500" />
+      case "success":
+        return <CheckCircle className="h-6 w-6 text-green-500" />;
+      case "failure":
+        return <XCircle className="h-6 w-6 text-red-500" />;
+      case "cancelled":
+        return <AlertCircle className="h-6 w-6 text-gray-500" />;
       default:
-        return <Clock className="h-6 w-6 text-blue-500" />
+        return <Clock className="h-6 w-6 text-blue-500" />;
     }
-  }
+  };
 
   const formatDuration = (ms: number) => {
-    const seconds = Math.floor(ms / 1000)
-    const minutes = Math.floor(seconds / 60)
-    const hours = Math.floor(minutes / 60)
-    
-    if (hours > 0) return `${hours}h ${minutes % 60}m ${seconds % 60}s`
-    if (minutes > 0) return `${minutes}m ${seconds % 60}s`
-    return `${seconds}s`
-  }
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+
+    if (hours > 0) return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
+    if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+    return `${seconds}s`;
+  };
 
   const toggleJobExpanded = (jobId: number) => {
-    const newExpanded = new Set(expandedJobs)
+    const newExpanded = new Set(expandedJobs);
     if (newExpanded.has(jobId)) {
-      newExpanded.delete(jobId)
+      newExpanded.delete(jobId);
     } else {
-      newExpanded.add(jobId)
+      newExpanded.add(jobId);
     }
-    setExpandedJobs(newExpanded)
-  }
+    setExpandedJobs(newExpanded);
+  };
 
-  const toggleLogsExpanded = (jobId: number) => {
-    const newExpanded = new Set(expandedLogs)
-    if (newExpanded.has(jobId)) {
-      newExpanded.delete(jobId)
+  const toggleStepExpanded = (stepId: number) => {
+    const newExpanded = new Set(expandedSteps);
+    if (newExpanded.has(stepId)) {
+      newExpanded.delete(stepId);
     } else {
-      newExpanded.add(jobId)
+      newExpanded.add(stepId);
     }
-    setExpandedLogs(newExpanded)
-  }
+    setExpandedSteps(newExpanded);
+  };
 
   const getStepStatusIcon = (status: string, conclusion: string | null) => {
-    if (status === 'in_progress') {
-      return <Clock className="h-4 w-4 text-yellow-500" />
+    if (status === "in_progress") {
+      return <Clock className="h-4 w-4 text-yellow-500" />;
     }
-    
-    switch (conclusion) {
-      case 'success':
-        return <CheckCircle className="h-4 w-4 text-green-500" />
-      case 'failure':
-        return <XCircle className="h-4 w-4 text-red-500" />
-      case 'skipped':
-        return <AlertCircle className="h-4 w-4 text-gray-400" />
-      default:
-        return <Clock className="h-4 w-4 text-gray-400" />
-    }
-  }
 
+    switch (conclusion) {
+      case "success":
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case "failure":
+        return <XCircle className="h-4 w-4 text-red-500" />;
+      case "skipped":
+        return <AlertCircle className="h-4 w-4 text-gray-400" />;
+      default:
+        return <Clock className="h-4 w-4 text-gray-400" />;
+    }
+  };
 
   return (
     <div className="p-6 relative">
@@ -220,7 +202,7 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
           <span className="text-sm text-blue-700">Updating...</span>
         </div>
       )}
-      
+
       <div className="flex items-center space-x-3 mb-6">
         <button
           onClick={onBack}
@@ -241,7 +223,10 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
                 Run #{run.runNumber}
               </h1>
               <p className="text-gray-600">
-                {formatDistanceToNow(new Date(run.createdAt), { addSuffix: true })} • {formatDuration(run.duration)}
+                {formatDistanceToNow(new Date(run.createdAt), {
+                  addSuffix: true,
+                })}{" "}
+                • {formatDuration(run.duration)}
               </p>
             </div>
           </div>
@@ -249,14 +234,26 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
-            <h3 className="font-medium text-gray-900 mb-2">Commit Information</h3>
+            <h3 className="font-medium text-gray-900 mb-2">
+              Commit Information
+            </h3>
             <div className="space-y-1 text-sm text-gray-600">
-              <p><span className="font-medium">Message:</span> {run.commit.message}</p>
-              <p><span className="font-medium">Author:</span> {run.commit.author}</p>
-              <p><span className="font-medium">SHA:</span> <code className="bg-gray-100 px-1 rounded">{run.commit.sha.substring(0, 7)}</code></p>
+              <p>
+                <span className="font-medium">Message:</span>{" "}
+                {run.commit.message}
+              </p>
+              <p>
+                <span className="font-medium">Author:</span> {run.commit.author}
+              </p>
+              <p>
+                <span className="font-medium">SHA:</span>{" "}
+                <code className="bg-gray-100 px-1 rounded">
+                  {run.commit.sha.substring(0, 7)}
+                </code>
+              </p>
             </div>
           </div>
-          
+
           <div>
             <h3 className="font-medium text-gray-900 mb-2">Files Summary</h3>
             <div className="grid grid-cols-2 gap-2 text-sm">
@@ -287,14 +284,16 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
           <h2 className="text-xl font-semibold text-gray-900 mb-6">
             Jobs ({jobs.length})
           </h2>
-          
+
           <div className="space-y-3">
             {jobs.map((job) => {
-              const isExpanded = expandedJobs.has(job.id)
-              const isLogsExpanded = expandedLogs.has(job.id)
-              
+              const isExpanded = expandedJobs.has(job.id);
+
               return (
-                <div key={job.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                <div
+                  key={job.id}
+                  className="border border-gray-200 rounded-lg overflow-hidden"
+                >
                   {/* Job Header */}
                   <div className="bg-gray-50 p-4">
                     <div className="flex items-center justify-between">
@@ -309,11 +308,13 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
                             <ChevronRight className="h-5 w-5" />
                           )}
                         </button>
-                        
+
                         {getStatusIcon(job.status, job.conclusion)}
-                        
+
                         <div className="flex-1">
-                          <h3 className="font-medium text-gray-900">{job.name}</h3>
+                          <h3 className="font-medium text-gray-900">
+                            {job.name}
+                          </h3>
                           <div className="flex items-center space-x-3 text-sm text-gray-500 mt-1">
                             <span>{job.status}</span>
                             {job.conclusion && (
@@ -325,7 +326,12 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
                             {job.started_at && (
                               <>
                                 <span>•</span>
-                                <span>{formatDistanceToNow(new Date(job.started_at), { addSuffix: true })}</span>
+                                <span>
+                                  {formatDistanceToNow(
+                                    new Date(job.started_at),
+                                    { addSuffix: true },
+                                  )}
+                                </span>
                               </>
                             )}
                           </div>
@@ -333,7 +339,7 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Job Steps (when expanded) */}
                   {isExpanded && job.steps && job.steps.length > 0 && (
                     <div className="p-4 bg-white border-t border-gray-200">
@@ -341,43 +347,68 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
                         Steps ({job.steps.length})
                       </h4>
                       <div className="space-y-2">
-                        {job.steps.map((step) => (
-                          <div
-                            key={step.id}
-                            className="flex items-start space-x-3 p-2 rounded hover:bg-gray-50"
-                          >
-                            {getStepStatusIcon(step.status, step.conclusion)}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900">{step.name}</p>
-                              <div className="flex items-center space-x-2 text-xs text-gray-500 mt-0.5">
-                                <span>#{step.number}</span>
-                                <span>•</span>
-                                <span>{step.status}</span>
-                                {step.conclusion && (
-                                  <>
-                                    <span>•</span>
-                                    <span>{step.conclusion}</span>
-                                  </>
+                        {job.steps.map((step) => {
+                          const isStepExpanded = expandedSteps.has(step.id);
+
+                          return (
+                            <div
+                              key={step.id}
+                              className="border border-gray-200 rounded"
+                            >
+                              <button
+                                onClick={() => toggleStepExpanded(step.id)}
+                                className="w-full flex items-start space-x-3 p-2 hover:bg-gray-50 text-left"
+                              >
+                                {isStepExpanded ? (
+                                  <ChevronDown className="h-4 w-4 text-gray-600 mt-0.5" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4 text-gray-600 mt-0.5" />
                                 )}
-                              </div>
+                                {getStepStatusIcon(
+                                  step.status,
+                                  step.conclusion,
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900">
+                                    {step.name}
+                                  </p>
+                                  <div className="flex items-center space-x-2 text-xs text-gray-500 mt-0.5">
+                                    <span>#{step.number}</span>
+                                    <span>•</span>
+                                    <span>{step.status}</span>
+                                    {step.conclusion && (
+                                      <>
+                                        <span>•</span>
+                                        <span>{step.conclusion}</span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              </button>
+
+                              {isStepExpanded && step.log_content && (
+                                <div className="p-3 border-t border-gray-200">
+                                  <div className="bg-gray-900 text-gray-100 p-3 rounded text-xs font-mono overflow-x-auto">
+                                    <pre className="whitespace-pre">
+                                      {step.log_content}
+                                    </pre>
+                                  </div>
+                                </div>
+                              )}
+
+                              {isStepExpanded && !step.log_content && (
+                                <div className="p-3 border-t border-gray-200 text-xs text-gray-500 italic">
+                                  No log content available for this step
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
-                  
-                  {/* Job Logs (collapsible like steps) */}
-                  {isExpanded && job.status === 'completed' && (
-                    <JobLogsSection 
-                      runId={runId}
-                      jobId={job.id}
-                      isExpanded={isLogsExpanded}
-                      onToggle={() => toggleLogsExpanded(job.id)}
-                    />
-                  )}
                 </div>
-              )
+              );
             })}
           </div>
         </div>
@@ -392,23 +423,29 @@ export function RunDetails({ runId, onBack }: RunDetailsProps) {
               Extracted Files ({summary.totalFiles})
             </h2>
           </div>
-          
+
           <FileTree nodes={fileTree} onFileClick={setSelectedFile} />
         </div>
       ) : (
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="text-center py-8">
             <Archive className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No files extracted</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No files extracted
+            </h3>
             <p className="text-gray-500">
-              This run did not produce any extractable artifacts or the artifacts may have expired.
+              This run did not produce any extractable artifacts or the
+              artifacts may have expired.
             </p>
           </div>
         </div>
       )}
 
       {/* File Preview Modal */}
-      <FilePreviewModal file={selectedFile} onClose={() => setSelectedFile(null)} />
+      <FilePreviewModal
+        file={selectedFile}
+        onClose={() => setSelectedFile(null)}
+      />
     </div>
-  )
+  );
 }

@@ -91,6 +91,7 @@ CREATE TABLE IF NOT EXISTS job_steps (
   number INTEGER NOT NULL,
   started_at TIMESTAMP WITH TIME ZONE,
   completed_at TIMESTAMP WITH TIME ZONE,
+  log_content TEXT,
   FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE
 );
 

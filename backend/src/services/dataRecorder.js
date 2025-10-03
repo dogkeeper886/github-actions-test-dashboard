@@ -1,12 +1,13 @@
-const WorkflowRun = require('../models/WorkflowRun')
-const ExtractedFile = require('../models/ExtractedFile')
-const Artifact = require('../models/Artifact')
-const Job = require('../models/Job')
-const JobStep = require('../models/JobStep')
-const JobLog = require('../models/JobLog')
-const githubService = require('./github')
-const { getDatabase } = require('../database/connection')
-const { v4: uuidv4 } = require('uuid')
+const WorkflowRun = require("../models/WorkflowRun");
+const ExtractedFile = require("../models/ExtractedFile");
+const Artifact = require("../models/Artifact");
+const Job = require("../models/Job");
+const JobStep = require("../models/JobStep");
+const JobLog = require("../models/JobLog");
+const githubService = require("./github");
+const { getDatabase } = require("../database/connection");
+const { v4: uuidv4 } = require("uuid");
+const { parseJobLogsIntoSteps } = require("./logParser");
 
 class DataRecorderService {
   /**
@@ -16,10 +17,12 @@ class DataRecorderService {
    */
   async recordWorkflow(workflowData) {
     try {
-      console.log(`Recording workflow: ${workflowData.id} - ${workflowData.name}`)
-      
-      const db = await getDatabase()
-      
+      console.log(
+        `Recording workflow: ${workflowData.id} - ${workflowData.name}`,
+      );
+
+      const db = await getDatabase();
+
       const query = `
         INSERT INTO workflows (
           id, name, path, state, created_at, updated_at, url, html_url, badge_url
@@ -33,8 +36,8 @@ class DataRecorderService {
           html_url = EXCLUDED.html_url,
           badge_url = EXCLUDED.badge_url
         RETURNING *
-      `
-      
+      `;
+
       const values = [
         workflowData.id,
         workflowData.name,
@@ -44,16 +47,16 @@ class DataRecorderService {
         workflowData.updated_at,
         workflowData.url,
         workflowData.html_url,
-        workflowData.badge_url
-      ]
-      
-      const result = await db.query(query, values)
-      console.log(`✅ Workflow ${workflowData.id} recorded successfully`)
-      
-      return result.rows[0]
+        workflowData.badge_url,
+      ];
+
+      const result = await db.query(query, values);
+      console.log(`✅ Workflow ${workflowData.id} recorded successfully`);
+
+      return result.rows[0];
     } catch (error) {
-      console.error(`❌ Failed to record workflow ${workflowData.id}:`, error)
-      throw error
+      console.error(`❌ Failed to record workflow ${workflowData.id}:`, error);
+      throw error;
     }
   }
 
@@ -63,19 +66,19 @@ class DataRecorderService {
    * @returns {Array} Stored workflows
    */
   async recordWorkflows(workflows) {
-    const results = []
-    
+    const results = [];
+
     for (const workflow of workflows) {
       try {
-        const result = await this.recordWorkflow(workflow)
-        results.push(result)
+        const result = await this.recordWorkflow(workflow);
+        results.push(result);
       } catch (error) {
-        console.error(`Failed to record workflow ${workflow.id}:`, error)
+        console.error(`Failed to record workflow ${workflow.id}:`, error);
         // Continue with other workflows
       }
     }
-    
-    return results
+
+    return results;
   }
 
   /**
@@ -85,15 +88,15 @@ class DataRecorderService {
    */
   async recordWorkflowRun(runData) {
     try {
-      console.log(`Recording workflow run: ${runData.id} - ${runData.name}`)
-      
-      const storedRun = await WorkflowRun.create(runData)
-      console.log(`✅ Workflow run ${runData.id} recorded successfully`)
-      
-      return storedRun
+      console.log(`Recording workflow run: ${runData.id} - ${runData.name}`);
+
+      const storedRun = await WorkflowRun.create(runData);
+      console.log(`✅ Workflow run ${runData.id} recorded successfully`);
+
+      return storedRun;
     } catch (error) {
-      console.error(`❌ Failed to record workflow run ${runData.id}:`, error)
-      throw error
+      console.error(`❌ Failed to record workflow run ${runData.id}:`, error);
+      throw error;
     }
   }
 
@@ -107,10 +110,12 @@ class DataRecorderService {
    */
   async recordExtractedFiles(runId, artifactId, artifactName, files) {
     try {
-      console.log(`Recording ${files.length} files for run ${runId}, artifact ${artifactName}`)
-      
-      const storedFiles = []
-      
+      console.log(
+        `Recording ${files.length} files for run ${runId}, artifact ${artifactName}`,
+      );
+
+      const storedFiles = [];
+
       for (const file of files) {
         const fileData = {
           runId,
@@ -121,18 +126,20 @@ class DataRecorderService {
           fileSize: file.size,
           storedFilename: file.storedFilename,
           storedUrl: file.url,
-          content: file.content
-        }
-        
-        const storedFile = await ExtractedFile.create(fileData)
-        storedFiles.push(storedFile)
+          content: file.content,
+        };
+
+        const storedFile = await ExtractedFile.create(fileData);
+        storedFiles.push(storedFile);
       }
-      
-      console.log(`✅ Recorded ${storedFiles.length} files for artifact ${artifactName}`)
-      return storedFiles
+
+      console.log(
+        `✅ Recorded ${storedFiles.length} files for artifact ${artifactName}`,
+      );
+      return storedFiles;
     } catch (error) {
-      console.error(`❌ Failed to record files for run ${runId}:`, error)
-      throw error
+      console.error(`❌ Failed to record files for run ${runId}:`, error);
+      throw error;
     }
   }
 
@@ -145,15 +152,15 @@ class DataRecorderService {
    */
   async recordCompleteRun(runData, artifacts = [], jobs = []) {
     try {
-      console.log(`🔄 Recording complete run: ${runData.id}`)
-      
+      console.log(`🔄 Recording complete run: ${runData.id}`);
+
       // 1. Record the workflow run
-      const storedRun = await this.recordWorkflowRun(runData)
-      
+      const storedRun = await this.recordWorkflowRun(runData);
+
       // 2. Record artifacts and their extracted files
-      let totalFiles = 0
-      const filesByArtifact = {}
-      
+      let totalFiles = 0;
+      const filesByArtifact = {};
+
       for (const artifact of artifacts) {
         // Record the artifact itself
         await Artifact.create({
@@ -166,25 +173,25 @@ class DataRecorderService {
           updated_at: artifact.updated_at,
           expires_at: artifact.expires_at,
           url: artifact.url,
-          archive_download_url: artifact.archive_download_url
-        })
-        
+          archive_download_url: artifact.archive_download_url,
+        });
+
         // Record extracted files if any
         if (artifact.extractedFiles && artifact.extractedFiles.length > 0) {
           const storedFiles = await this.recordExtractedFiles(
             runData.id,
             artifact.id,
             artifact.name,
-            artifact.extractedFiles
-          )
-          
-          filesByArtifact[artifact.name] = storedFiles
-          totalFiles += storedFiles.length
+            artifact.extractedFiles,
+          );
+
+          filesByArtifact[artifact.name] = storedFiles;
+          totalFiles += storedFiles.length;
         }
       }
-      
+
       // 3. Record jobs, steps, and logs
-      let totalJobs = 0
+      let totalJobs = 0;
       for (const job of jobs) {
         await Job.create({
           id: job.id,
@@ -195,37 +202,50 @@ class DataRecorderService {
           started_at: job.started_at,
           completed_at: job.completed_at,
           url: job.url,
-          html_url: job.html_url
-        })
-        
-        // Record job steps
-        if (job.steps && job.steps.length > 0) {
-          await JobStep.createMultiple(job.id, job.steps)
-        }
-        
-        // Fetch and record job logs
-        if (job.status === 'completed') {
+          html_url: job.html_url,
+        });
+
+        // Fetch and record job logs, then parse into steps
+        if (job.status === "completed") {
           try {
-            const logs = await githubService.getJobLogs(job.id)
-            await JobLog.create(job.id, logs)
+            const logs = await githubService.getJobLogs(job.id);
+            await JobLog.create(job.id, logs);
+
+            // Parse logs into steps and record with log content
+            if (job.steps && job.steps.length > 0) {
+              const stepsWithLogs = parseJobLogsIntoSteps(logs, job.steps);
+              await JobStep.createMultiple(job.id, stepsWithLogs);
+            }
           } catch (logError) {
-            console.log(`⚠️ Could not fetch logs for job ${job.id}:`, logError.message)
+            console.log(
+              `⚠️ Could not fetch logs for job ${job.id}:`,
+              logError.message,
+            );
+            // Still record steps without logs
+            if (job.steps && job.steps.length > 0) {
+              await JobStep.createMultiple(job.id, job.steps);
+            }
+          }
+        } else {
+          // For non-completed jobs, record steps without logs
+          if (job.steps && job.steps.length > 0) {
+            await JobStep.createMultiple(job.id, job.steps);
           }
         }
-        
-        totalJobs++
+
+        totalJobs++;
       }
-      
+
       return {
         run: storedRun,
         totalFiles,
         totalArtifacts: artifacts.length,
         totalJobs,
-        filesByArtifact
-      }
+        filesByArtifact,
+      };
     } catch (error) {
-      console.error(`❌ Failed to record complete run ${runData.id}:`, error)
-      throw error
+      console.error(`❌ Failed to record complete run ${runData.id}:`, error);
+      throw error;
     }
   }
 
@@ -236,11 +256,11 @@ class DataRecorderService {
    */
   async isRunRecorded(runId) {
     try {
-      const existingRun = await WorkflowRun.findById(runId)
-      return !!existingRun
+      const existingRun = await WorkflowRun.findById(runId);
+      return !!existingRun;
     } catch (error) {
-      console.error(`Error checking if run ${runId} exists:`, error)
-      return false
+      console.error(`Error checking if run ${runId} exists:`, error);
+      return false;
     }
   }
 
@@ -251,26 +271,27 @@ class DataRecorderService {
    */
   async getWorkflowSummary(workflowId) {
     try {
-      const runs = await WorkflowRun.findByWorkflowId(workflowId)
-      
+      const runs = await WorkflowRun.findByWorkflowId(workflowId);
+
       const summary = {
         totalRuns: runs.length,
-        successfulRuns: runs.filter(r => r.conclusion === 'success').length,
-        failedRuns: runs.filter(r => r.conclusion === 'failure').length,
+        successfulRuns: runs.filter((r) => r.conclusion === "success").length,
+        failedRuns: runs.filter((r) => r.conclusion === "failure").length,
         latestRun: runs[0] || null, // Assuming runs are ordered by date desc
-        successRate: 0
-      }
-      
+        successRate: 0,
+      };
+
       if (summary.totalRuns > 0) {
-        summary.successRate = (summary.successfulRuns / summary.totalRuns) * 100
+        summary.successRate =
+          (summary.successfulRuns / summary.totalRuns) * 100;
       }
-      
-      return summary
+
+      return summary;
     } catch (error) {
-      console.error(`Error getting workflow summary for ${workflowId}:`, error)
-      throw error
+      console.error(`Error getting workflow summary for ${workflowId}:`, error);
+      throw error;
     }
   }
 }
 
-module.exports = DataRecorderService
+module.exports = DataRecorderService;
