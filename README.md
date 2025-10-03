@@ -7,11 +7,26 @@ A self-hosted dashboard that automatically collects and displays your GitHub Act
 ### 📸 **See Your Test Screenshots Instantly**
 No more downloading artifacts and unzipping them. Every screenshot from your test runs is displayed in a file browser with instant preview.
 
+![Dashboard Home](screenshots/01_dashboard_home.png)
+*Main dashboard showing all workflows with latest run status and success rates*
+
 ### 📋 **Browse Test Results Like Files**
 All your test artifacts (screenshots, logs, JSON reports) are organized in a familiar folder structure. Click to preview, download what you need.
 
+![Workflow Runs List](screenshots/02_workflow_runs_list.png)
+*View all runs for a workflow, sorted newest first with commit info and artifact counts*
+
 ### 🔍 **Job Logs and Steps**
 View job logs and individual step status for every workflow run. No need to navigate through GitHub's UI.
+
+![Run Details with Logs](screenshots/03_run_details_with_logs.png)
+*Expand jobs to see steps, click any step to view its logs right in the dashboard*
+
+### 📂 **Extracted Artifacts**
+All artifacts are automatically extracted and organized in folders. Browse screenshots, reports, and logs without downloading.
+
+![Extracted Files View](screenshots/04_extracted_files_view.png)
+*File browser showing all extracted artifacts organized by test name*
 
 ### ⚡ **Automatic Updates**
 The dashboard starts collecting data immediately and checks for new runs every 5 minutes. Click "Refresh Data" anytime for instant updates.

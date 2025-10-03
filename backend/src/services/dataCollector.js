@@ -28,8 +28,11 @@ class DataCollectorService {
 
     setTimeout(
       async () => {
-        await this.collectNewData();
-        this.scheduleNextPoll();
+        try {
+          await this.collectNewData();
+        } finally {
+          this.scheduleNextPoll();
+        }
       },
       this.pollInterval * 60 * 1000,
     );

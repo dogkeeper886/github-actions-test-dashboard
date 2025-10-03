@@ -54,7 +54,6 @@ build/
 
 # Data directories
 data/
-screenshots/
 
 # Docker
 .dockerignore
