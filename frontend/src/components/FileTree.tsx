@@ -39,10 +39,6 @@ export function FileTree({ nodes, onFileClick, level = 0 }: FileTreeProps) {
     const fileData = node.fileData;
     if (!fileData) return;
 
-    if (fileData.url) {
-      return;
-    }
-
     if (fileData.content) {
       let blob: Blob;
       const content = fileData.content as string | object;
