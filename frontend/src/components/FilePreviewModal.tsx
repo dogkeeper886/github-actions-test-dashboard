@@ -10,6 +10,25 @@ interface FilePreviewModalProps {
   onClose: () => void;
 }
 
+function DownloadIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className="h-4 w-4"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+      />
+    </svg>
+  );
+}
+
 function renderFileContent(
   file: FileNode,
   fileType: string,
@@ -44,7 +63,7 @@ function renderFileContent(
   if (file.name.endsWith(".md") && typeof content === "string") {
     return (
       <div className="p-4 bg-white overflow-auto max-h-[70vh] prose prose-sm max-w-none">
-        <ReactMarkdown>{content as string}</ReactMarkdown>
+        <ReactMarkdown>{content}</ReactMarkdown>
       </div>
     );
   }
@@ -54,7 +73,7 @@ function renderFileContent(
     return (
       <div className="p-4 bg-gray-50 overflow-auto max-h-[70vh]">
         <pre className="text-sm text-gray-900 whitespace-pre-wrap font-mono">
-          {String(content as string)}
+          {content}
         </pre>
       </div>
     );
@@ -85,34 +104,28 @@ export function FilePreviewModal({ file, onClose }: FilePreviewModalProps) {
   const content = file.fileData.content as string | object | undefined;
 
   const handleDownload = () => {
-    if (url) {
-      // If URL exists, browser will handle the download
+    if (!content) return;
+
+    let blob: Blob;
+
+    if (fileType === "json" || typeof content === "object") {
+      blob = new Blob([JSON.stringify(content, null, 2)], {
+        type: "application/json",
+      });
+    } else if (typeof content === "string") {
+      blob = new Blob([content], { type: "text/plain" });
+    } else {
       return;
     }
 
-    // For files with content stored in database, create a blob and download
-    if (content) {
-      let blob: Blob;
-
-      if (fileType === "json" || typeof content === "object") {
-        blob = new Blob([JSON.stringify(content, null, 2)], {
-          type: "application/json",
-        });
-      } else if (typeof content === "string") {
-        blob = new Blob([content], { type: "text/plain" });
-      } else {
-        return;
-      }
-
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = downloadUrl;
-      a.download = file.name;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(downloadUrl);
-    }
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = downloadUrl;
+    a.download = file.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(downloadUrl);
   };
 
   return (
@@ -148,20 +161,7 @@ export function FilePreviewModal({ file, onClose }: FilePreviewModalProps) {
                 download
                 className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                  />
-                </svg>
+                <DownloadIcon />
                 Download {file.name}
               </a>
             ) : (
@@ -169,20 +169,7 @@ export function FilePreviewModal({ file, onClose }: FilePreviewModalProps) {
                 onClick={handleDownload}
                 className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                  />
-                </svg>
+                <DownloadIcon />
                 Download {file.name}
               </button>
             )}
