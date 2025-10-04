@@ -53,6 +53,7 @@ services:
       - DATABASE_URL=postgresql://dashboard_user:${DB_PASSWORD:-dashboard_password}@database:5432/github_actions_dashboard
     volumes:
       - screenshot_data:/app/data/screenshots
+      - binary_files_data:/app/data/files
       - temp_data:/app/temp
     depends_on:
       database:
@@ -61,4 +62,5 @@ services:
 volumes:
   postgres_data:
   screenshot_data:
+  binary_files_data:
   temp_data:

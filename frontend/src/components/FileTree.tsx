@@ -1,48 +1,85 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { ChevronRight, ChevronDown, Download, Eye } from 'lucide-react'
-import { FileNode, getFileIcon, getFolderIcon } from '@/lib/fileTree'
+import { useState } from "react";
+import { ChevronRight, ChevronDown, Download, Eye } from "lucide-react";
+import { FileNode, getFileIcon, getFolderIcon } from "@/lib/fileTree";
 
 interface FileTreeProps {
-  nodes: FileNode[]
-  onFileClick: (node: FileNode) => void
-  level?: number
+  nodes: FileNode[];
+  onFileClick: (node: FileNode) => void;
+  level?: number;
 }
 
 export function FileTree({ nodes, onFileClick, level = 0 }: FileTreeProps) {
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
+    new Set(),
+  );
 
   const toggleFolder = (path: string) => {
-    const newExpanded = new Set(expandedFolders)
+    const newExpanded = new Set(expandedFolders);
     if (newExpanded.has(path)) {
-      newExpanded.delete(path)
+      newExpanded.delete(path);
     } else {
-      newExpanded.add(path)
+      newExpanded.add(path);
     }
-    setExpandedFolders(newExpanded)
-  }
+    setExpandedFolders(newExpanded);
+  };
 
   const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 B'
-    const k = 1024
-    const sizes = ['B', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
-  }
+    if (bytes === 0) return "0 B";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+  };
+
+  const handleDownload = (node: FileNode, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    const fileData = node.fileData;
+    if (!fileData) return;
+
+    if (fileData.url) {
+      return;
+    }
+
+    if (fileData.content) {
+      let blob: Blob;
+      const content = fileData.content as string | object;
+
+      if (fileData.fileType === "json" || typeof content === "object") {
+        blob = new Blob([JSON.stringify(content, null, 2)], {
+          type: "application/json",
+        });
+      } else if (typeof content === "string") {
+        blob = new Blob([content], { type: "text/plain" });
+      } else {
+        return;
+      }
+
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = node.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(downloadUrl);
+    }
+  };
 
   return (
     <div className="space-y-1">
       {nodes.map((node) => {
-        const isExpanded = expandedFolders.has(node.path)
-        const isFolder = node.type === 'folder'
+        const isExpanded = expandedFolders.has(node.path);
+        const isFolder = node.type === "folder";
 
         return (
           <div key={node.path}>
             {/* Folder or File Row */}
             <div
               className={`flex items-center space-x-2 py-1.5 px-2 rounded hover:bg-gray-50 ${
-                isFolder ? 'cursor-pointer' : ''
+                isFolder ? "cursor-pointer" : ""
               }`}
               style={{ paddingLeft: `${level * 1.5 + 0.5}rem` }}
               onClick={() => isFolder && toggleFolder(node.path)}
@@ -62,15 +99,18 @@ export function FileTree({ nodes, onFileClick, level = 0 }: FileTreeProps) {
               <span className="text-lg">
                 {isFolder
                   ? getFolderIcon(isExpanded)
-                  : getFileIcon(node.name, node.fileData?.fileType || '')}
+                  : getFileIcon(node.name, node.fileData?.fileType || "")}
               </span>
 
               {/* File/Folder Name */}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{node.name}</p>
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  {node.name}
+                </p>
                 {!isFolder && node.fileData && (
                   <p className="text-xs text-gray-500">
-                    {formatFileSize(node.fileData.size)} • {node.fileData.artifactName}
+                    {formatFileSize(node.fileData.size)} •{" "}
+                    {node.fileData.artifactName}
                   </p>
                 )}
               </div>
@@ -79,14 +119,15 @@ export function FileTree({ nodes, onFileClick, level = 0 }: FileTreeProps) {
               {!isFolder && node.fileData && (
                 <div className="flex items-center space-x-1">
                   {/* View Button for images/json/text */}
-                  {(node.fileData.fileType === 'image' ||
-                    node.fileData.fileType === 'json' ||
-                    node.fileData.fileType === 'text' ||
-                    node.fileData.content !== undefined) && (
+                  {(node.fileData.fileType === "image" ||
+                    node.fileData.fileType === "json" ||
+                    node.fileData.fileType === "text" ||
+                    (node.fileData.content as string | object | undefined) !==
+                      undefined) && (
                     <button
                       onClick={(e) => {
-                        e.stopPropagation()
-                        onFileClick(node)
+                        e.stopPropagation();
+                        onFileClick(node);
                       }}
                       className="p-1 text-blue-600 hover:bg-blue-50 rounded"
                       title="Preview file"
@@ -96,30 +137,46 @@ export function FileTree({ nodes, onFileClick, level = 0 }: FileTreeProps) {
                   )}
 
                   {/* Download Button */}
-                  {node.fileData.url && (
-                    <a
-                      href={node.fileData.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="p-1 text-gray-600 hover:bg-gray-100 rounded"
-                      title="Download file"
-                    >
-                      <Download className="h-4 w-4" />
-                    </a>
-                  )}
+                  {(node.fileData.url ||
+                    (node.fileData.content as string | object | undefined)) &&
+                    (node.fileData.url ? (
+                      <a
+                        href={node.fileData.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-1 text-gray-600 hover:bg-gray-100 rounded"
+                        title="Download file"
+                      >
+                        <Download className="h-4 w-4" />
+                      </a>
+                    ) : (
+                      <button
+                        onClick={(e) => handleDownload(node, e)}
+                        className="p-1 text-gray-600 hover:bg-gray-100 rounded"
+                        title="Download file"
+                      >
+                        <Download className="h-4 w-4" />
+                      </button>
+                    ))}
                 </div>
               )}
             </div>
 
             {/* Render Children for Expanded Folders */}
-            {isFolder && isExpanded && node.children && node.children.length > 0 && (
-              <FileTree nodes={node.children} onFileClick={onFileClick} level={level + 1} />
-            )}
+            {isFolder &&
+              isExpanded &&
+              node.children &&
+              node.children.length > 0 && (
+                <FileTree
+                  nodes={node.children}
+                  onFileClick={onFileClick}
+                  level={level + 1}
+                />
+              )}
           </div>
-        )
+        );
       })}
     </div>
-  )
+  );
 }
-
