@@ -3,6 +3,7 @@ version: "3.8"
 services:
   nginx:
     image: nginx:alpine
+    restart: unless-stopped
     ports:
       - "80:80"
     volumes:
@@ -17,11 +18,13 @@ services:
       dockerfile: Dockerfile
       args:
         - NEXT_PUBLIC_API_URL=/api
+    restart: unless-stopped
     depends_on:
       - backend
 
   database:
     image: postgres:15-alpine
+    restart: unless-stopped
     environment:
       - POSTGRES_DB=github_actions_dashboard
       - POSTGRES_USER=dashboard_user
@@ -42,6 +45,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    restart: unless-stopped
     environment:
       - NODE_ENV=production
       - PORT=3001
