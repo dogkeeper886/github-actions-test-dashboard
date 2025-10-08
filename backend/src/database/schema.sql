@@ -64,7 +64,8 @@ CREATE TABLE IF NOT EXISTS extracted_files (
   content TEXT, -- for text/json files
   extracted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   FOREIGN KEY (run_id) REFERENCES workflow_runs(id),
-  FOREIGN KEY (artifact_id) REFERENCES artifacts(id)
+  FOREIGN KEY (artifact_id) REFERENCES artifacts(id),
+  UNIQUE (run_id, stored_filename)
 );
 
 -- Jobs table
@@ -92,7 +93,8 @@ CREATE TABLE IF NOT EXISTS job_steps (
   started_at TIMESTAMP WITH TIME ZONE,
   completed_at TIMESTAMP WITH TIME ZONE,
   log_content TEXT,
-  FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE
+  FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE,
+  UNIQUE (job_id, number)
 );
 
 -- Job logs table
